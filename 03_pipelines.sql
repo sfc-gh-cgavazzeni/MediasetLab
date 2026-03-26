@@ -1,7 +1,7 @@
 -- ============================================================================
 -- MEDIASET SNOWFLAKE WORKSHOP - DATA PIPELINES
--- Modulo 3: Dynamic Tables per pipeline di dati semplici
--- Durata: 30 minuti
+-- Modulo 4: Dynamic Tables, Streams & Tasks per pipeline di dati
+-- Durata: 35 minuti
 -- ============================================================================
 
 USE ROLE ACCOUNTADMIN;

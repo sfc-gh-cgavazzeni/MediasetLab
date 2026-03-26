@@ -105,6 +105,41 @@ GRANT ROLE MEDIASET_ANALYST TO ROLE SYSADMIN;
 GRANT ROLE MEDIASET_MARKETING TO ROLE SYSADMIN;"""
 story.append(Preformatted(code3, styles['CodeStyle']))
 
+story.append(Paragraph("Step 1.9: Caricamento Dati da Stage S3 Pubblico", styles['StepTitle']))
+story.append(Paragraph("Oltre al caricamento manuale via Snowsight, Snowflake permette di caricare dati direttamente da bucket S3 pubblici utilizzando uno <b>Stage esterno</b>. In questo esempio utilizziamo il dataset <b>Citibike Trips</b> dal bucket pubblico <b>s3://snowflake-workshop-lab/citibike-trips-csv/</b> (nessuna credenziale AWS necessaria).", styles['BodyText']))
+
+code_s3 = """-- Creare file format e stage esterno
+CREATE OR REPLACE FILE FORMAT CSV_GZIP_FORMAT
+    TYPE = 'CSV'  COMPRESSION = 'GZIP'
+    FIELD_DELIMITER = ','
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'  SKIP_HEADER = 0;
+
+CREATE OR REPLACE STAGE CITIBIKE_STAGE
+    URL = 's3://snowflake-workshop-lab/citibike-trips-csv/'
+    FILE_FORMAT = CSV_GZIP_FORMAT;
+
+-- Verificare che lo stage sia raggiungibile
+LIST @CITIBIKE_STAGE;
+
+-- Creare tabella e caricare dati con COPY INTO
+CREATE OR REPLACE TABLE CITIBIKE_TRIPS (
+    TRIP_ID INT, STARTTIME TIMESTAMP, STOPTIME TIMESTAMP,
+    TRIPDURATION_MIN INT, START_STATION_ID INT,
+    END_STATION_ID INT, BIKEID VARCHAR(20),
+    BIKE_TYPE VARCHAR(20), USER_ID INT,
+    USER_NAME VARCHAR(100), BIRTH_DATE DATE,
+    GENDER VARCHAR(10), USER_TYPE VARCHAR(50),
+    PAYMENT_METHOD VARCHAR(20), PAYMENT_PROVIDER VARCHAR(20)
+);
+
+COPY INTO CITIBIKE_TRIPS FROM @CITIBIKE_STAGE
+    PATTERN = '.*data_0_1_0.csv.gz'
+    ON_ERROR = 'CONTINUE';
+
+SELECT COUNT(*) AS righe_caricate FROM CITIBIKE_TRIPS;"""
+story.append(Preformatted(code_s3, styles['CodeStyle']))
+story.append(Paragraph("<b>Nota:</b> Il PATTERN limita il caricamento a un singolo file. Rimuovendolo si caricano tutti i file presenti nello stage.", styles['FeatureBox']))
+
 story.append(Paragraph("Esercizio: Scrivi una query che mostri i top 5 programmi per share medio.", styles['ExerciseBox']))
 story.append(PageBreak())
 

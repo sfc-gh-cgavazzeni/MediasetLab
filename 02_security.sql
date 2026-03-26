@@ -1,7 +1,7 @@
 -- ============================================================================
 -- MEDIASET SNOWFLAKE WORKSHOP - SECURITY
--- Modulo 2: Row-Level Security e Column-Level Masking
--- Durata: 35 minuti
+-- Modulo 3: Row-Level Security e Column-Level Masking
+-- Durata: 30 minuti
 -- ============================================================================
 
 USE ROLE ACCOUNTADMIN;

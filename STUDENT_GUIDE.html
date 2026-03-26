@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Workshop Snowflake per Mediaset - Guida Partecipanti</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2cm 2.5cm;
+  }
+  body {
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1a1a1a;
+    max-width: 100%;
+  }
+  h1 {
+    color: #29B5E8;
+    font-size: 22pt;
+    border-bottom: 3px solid #29B5E8;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  h2 {
+    color: #11567F;
+    font-size: 16pt;
+    border-bottom: 2px solid #29B5E8;
+    padding-bottom: 5px;
+    margin-top: 30px;
+    page-break-after: avoid;
+  }
+  h3 {
+    color: #1B8BBE;
+    font-size: 13pt;
+    margin-top: 20px;
+    page-break-after: avoid;
+  }
+  h4 {
+    color: #333;
+    font-size: 11.5pt;
+    margin-top: 15px;
+    page-break-after: avoid;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  th {
+    background-color: #29B5E8;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    border: 1px solid #ddd;
+    padding: 6px 10px;
+  }
+  tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+  code {
+    background-color: #f0f3f5;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 9.5pt;
+  }
+  pre {
+    background-color: #1e2937;
+    color: #e6edf3;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 9pt;
+    line-height: 1.5;
+    page-break-inside: avoid;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  blockquote {
+    border-left: 4px solid #29B5E8;
+    margin: 12px 0;
+    padding: 10px 16px;
+    background-color: #f0f8ff;
+    color: #333;
+    font-style: normal;
+    page-break-inside: avoid;
+  }
+  blockquote p {
+    margin: 0;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 25px 0;
+  }
+  strong {
+    color: #11567F;
+  }
+  ol, ul {
+    padding-left: 24px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  p {
+    margin: 8px 0;
+  }
+  a {
+    color: #29B5E8;
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+<h1>Workshop Snowflake per Mediaset</h1>
+<h2>Guida per i Partecipanti</h2>
+<hr />
+<h2>Informazioni Workshop</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Durata</strong></td>
+<td>2 ore</td>
+</tr>
+<tr>
+<td><strong>Livello</strong></td>
+<td>Introduttivo/Intermedio</td>
+</tr>
+<tr>
+<td><strong>Prerequisiti</strong></td>
+<td>Account Snowflake attivo, conoscenze base SQL</td>
+</tr>
+<tr>
+<td><strong>Settore</strong></td>
+<td>TV Broadcasting</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Agenda</h2>
+<table>
+<thead>
+<tr>
+<th>Orario</th>
+<th>Modulo</th>
+<th>Durata</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>00:00 - 00:35</td>
+<td>Modulo 1: Setup e Basi Snowflake</td>
+<td>35 min</td>
+</tr>
+<tr>
+<td>00:35 - 00:55</td>
+<td>Modulo 2: Zero Copy Cloning e Time Travel</td>
+<td>20 min</td>
+</tr>
+<tr>
+<td>00:55 - 01:25</td>
+<td>Modulo 3: Row &amp; Column Level Security</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td>01:25 - 02:00</td>
+<td>Modulo 4: Data Pipelines (Dynamic Tables, Streams &amp; Tasks)</td>
+<td>35 min</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Modulo 1: Setup e Basi Snowflake (35 min)</h2>
+<blockquote>
+<p><strong>Snowflake</strong> è una piattaforma dati cloud-native che separa storage e compute. I <strong>Database</strong> organizzano i dati in <strong>Schema</strong>, mentre i <strong>Warehouse</strong> forniscono risorse di calcolo elastiche on-demand. I <strong>Ruoli</strong> controllano l'accesso seguendo il principio del least privilege.</p>
+</blockquote>
+<h3>Obiettivi di Apprendimento</h3>
+<ul>
+<li>Creare e configurare database, schema e warehouse</li>
+<li>Comprendere il modello di ruoli e permessi</li>
+<li>Eseguire query SQL di base</li>
+<li>Caricare e interrogare dati</li>
+</ul>
+<h3>Istruzioni Passo-Passo</h3>
+<h4>Step 1.1: Accesso a Snowflake</h4>
+<ol>
+<li>Apri il browser e vai all'URL del tuo account Snowflake</li>
+<li>Effettua il login con le credenziali fornite</li>
+<li>Seleziona <strong>Worksheets</strong> dal menu laterale</li>
+</ol>
+<h4>Step 1.2: Creazione Database e Schema</h4>
+<pre><code class="language-sql">-- Usa SYSADMIN per creare oggetti (best practice)
+USE ROLE SYSADMIN;
+
+-- Crea il database per il workshop
+CREATE OR REPLACE DATABASE MEDIASET_LAB;
+
+-- Crea gli schema necessari
+CREATE OR REPLACE SCHEMA MEDIASET_LAB.RAW;
+CREATE OR REPLACE SCHEMA MEDIASET_LAB.ANALYTICS;
+CREATE OR REPLACE SCHEMA MEDIASET_LAB.SECURITY;
+</code></pre>
+<p><strong>Verifica:</strong> Esegui <code>SHOW SCHEMAS IN DATABASE MEDIASET_LAB;</code></p>
+<h4>Step 1.3: Creazione Warehouse</h4>
+<pre><code class="language-sql">-- Usa SYSADMIN per creare warehouse (best practice)
+USE ROLE SYSADMIN;
+
+CREATE OR REPLACE WAREHOUSE MEDIASET_WH
+    WAREHOUSE_SIZE = 'XSMALL'
+    AUTO_SUSPEND = 300
+    AUTO_RESUME = TRUE
+    INITIALLY_SUSPENDED = TRUE;
+</code></pre>
+<p><strong>Nota:</strong> Il warehouse si attiverà automaticamente alla prima query.</p>
+<h4>Step 1.4: Creazione Ruoli</h4>
+<pre><code class="language-sql">-- Usa SECURITYADMIN per gestire ruoli (best practice)
+USE ROLE SECURITYADMIN;
+
+-- Crea i ruoli custom
+CREATE OR REPLACE ROLE MEDIASET_ADMIN;
+CREATE OR REPLACE ROLE MEDIASET_ANALYST;
+CREATE OR REPLACE ROLE MEDIASET_MARKETING;
+CREATE OR REPLACE ROLE MEDIASET_REGIONALE_NORD;
+CREATE OR REPLACE ROLE MEDIASET_REGIONALE_SUD;
+
+-- BEST PRACTICE: I ruoli custom devono riportare a SYSADMIN
+-- Questo garantisce che SYSADMIN possa gestire tutti gli oggetti
+GRANT ROLE MEDIASET_ADMIN TO ROLE SYSADMIN;
+GRANT ROLE MEDIASET_ANALYST TO ROLE SYSADMIN;
+GRANT ROLE MEDIASET_MARKETING TO ROLE SYSADMIN;
+GRANT ROLE MEDIASET_REGIONALE_NORD TO ROLE SYSADMIN;
+GRANT ROLE MEDIASET_REGIONALE_SUD TO ROLE SYSADMIN;
+
+-- Gerarchia interna dei ruoli Mediaset
+GRANT ROLE MEDIASET_ANALYST TO ROLE MEDIASET_ADMIN;
+GRANT ROLE MEDIASET_MARKETING TO ROLE MEDIASET_ADMIN;
+GRANT ROLE MEDIASET_REGIONALE_NORD TO ROLE MEDIASET_ANALYST;
+GRANT ROLE MEDIASET_REGIONALE_SUD TO ROLE MEDIASET_ANALYST;
+</code></pre>
+<p><strong>Best Practice:</strong> Tutti i ruoli custom devono essere assegnati a SYSADMIN per mantenere la gerarchia standard di Snowflake.</p>
+<h4>Step 1.5: Creazione Tabelle</h4>
+<p>Esegui le sezioni 1-4 dello script <code>01_setup_data.sql</code> per creare database, schema, warehouse, ruoli e tabelle.</p>
+<h4>Step 1.6: Caricamento Dati da CSV tramite Snowsight</h4>
+<p>I dati sono forniti come file CSV nella cartella <code>data/</code>. Per caricare ogni tabella:</p>
+<ol>
+<li>Nel menu laterale di Snowsight, clicca su <strong>Data</strong> &gt; <strong>Databases</strong></li>
+<li>Naviga fino a <strong>MEDIASET_LAB</strong> &gt; <strong>RAW</strong></li>
+<li>Clicca sulla tabella da popolare (es. <code>PROGRAMMI_TV</code>)</li>
+<li>In alto a destra, clicca su <strong>Load Data</strong></li>
+<li>Seleziona il warehouse <strong>MEDIASET_WH</strong></li>
+<li>Clicca su <strong>Browse</strong> e seleziona il file CSV corrispondente dalla cartella <code>data/</code></li>
+<li>Nelle opzioni del File Format:</li>
+<li><strong>File Type</strong>: CSV</li>
+<li><strong>Header</strong>: seleziona "First line contains header"</li>
+<li><strong>Field delimiter</strong>: virgola (<code>,</code>)</li>
+<li><strong>Field optionally enclosed by</strong>: doppio apice (<code>"</code>)</li>
+<li>Clicca su <strong>Load</strong> per avviare il caricamento</li>
+</ol>
+<p>Ripeti per tutte le tabelle nell'ordine indicato:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Tabella</th>
+<th>File CSV</th>
+<th>Righe attese</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>PROGRAMMI_TV</td>
+<td><code>data/PROGRAMMI_TV.csv</code></td>
+<td>20</td>
+</tr>
+<tr>
+<td>2</td>
+<td>PALINSESTO</td>
+<td><code>data/PALINSESTO.csv</code></td>
+<td>600</td>
+</tr>
+<tr>
+<td>3</td>
+<td>ASCOLTI</td>
+<td><code>data/ASCOLTI.csv</code></td>
+<td>5000</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ABBONATI</td>
+<td><code>data/ABBONATI.csv</code></td>
+<td>20</td>
+</tr>
+<tr>
+<td>5</td>
+<td>CONTENUTI_DESCRIZIONI</td>
+<td><code>data/CONTENUTI_DESCRIZIONI.csv</code></td>
+<td>20</td>
+</tr>
+<tr>
+<td>6</td>
+<td>CONTRATTI_PUBBLICITARI</td>
+<td><code>data/CONTRATTI_PUBBLICITARI.csv</code></td>
+<td>15</td>
+</tr>
+<tr>
+<td>7</td>
+<td>FEEDBACK_SOCIAL</td>
+<td><code>data/FEEDBACK_SOCIAL.csv</code></td>
+<td>20</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Nota:</strong> Carica <code>PROGRAMMI_TV</code> per prima, poiché le altre tabelle contengono riferimenti al campo <code>programma_id</code>.</p>
+<h4>Step 1.7: Verifica Caricamento</h4>
+<pre><code class="language-sql">-- Verifica che tutte le tabelle siano state caricate correttamente
+SELECT 'PROGRAMMI_TV' as tabella, COUNT(*) as righe FROM MEDIASET_LAB.RAW.PROGRAMMI_TV
+UNION ALL SELECT 'PALINSESTO', COUNT(*) FROM MEDIASET_LAB.RAW.PALINSESTO
+UNION ALL SELECT 'ASCOLTI', COUNT(*) FROM MEDIASET_LAB.RAW.ASCOLTI
+UNION ALL SELECT 'ABBONATI', COUNT(*) FROM MEDIASET_LAB.RAW.ABBONATI
+UNION ALL SELECT 'CONTENUTI_DESCRIZIONI', COUNT(*) FROM MEDIASET_LAB.RAW.CONTENUTI_DESCRIZIONI
+UNION ALL SELECT 'CONTRATTI_PUBBLICITARI', COUNT(*) FROM MEDIASET_LAB.RAW.CONTRATTI_PUBBLICITARI
+UNION ALL SELECT 'FEEDBACK_SOCIAL', COUNT(*) FROM MEDIASET_LAB.RAW.FEEDBACK_SOCIAL
+ORDER BY tabella;
+</code></pre>
+<h4>Step 1.8: Query di Verifica</h4>
+<pre><code class="language-sql">-- Verifica le tabelle create
+SHOW TABLES IN SCHEMA MEDIASET_LAB.RAW;
+
+-- Query sui programmi TV
+SELECT titolo, genere, canale, costo_episodio_eur
+FROM MEDIASET_LAB.RAW.PROGRAMMI_TV
+ORDER BY costo_episodio_eur DESC
+LIMIT 5;
+
+-- Analisi ascolti per regione
+SELECT 
+    regione,
+    AVG(share_percentuale) as share_medio,
+    SUM(telespettatori) as telespettatori_totali
+FROM MEDIASET_LAB.RAW.ASCOLTI
+GROUP BY regione
+ORDER BY share_medio DESC;
+</code></pre>
+<h4>Step 1.9: Caricamento Dati da Stage S3 Pubblico</h4>
+<p>Oltre al caricamento manuale via Snowsight, Snowflake permette di caricare dati direttamente da bucket S3 pubblici utilizzando uno <strong>Stage esterno</strong>. Questo approccio è ideale per automatizzare l'ingestion e lavorare con dataset di grandi dimensioni senza scaricarli in locale.</p>
+<p>In questo esempio utilizziamo il dataset <strong>Citibike Trips</strong>, ospitato nel bucket S3 pubblico <code>s3://snowflake-workshop-lab/citibike-trips-csv/</code> (accessibile senza credenziali AWS).</p>
+<pre><code>USE ROLE SYSADMIN;
+USE SCHEMA MEDIASET_LAB.RAW;
+USE WAREHOUSE MEDIASET_WH;
+
+-- Passo 1: Creare un file format per CSV compressi (gzip)
+CREATE OR REPLACE FILE FORMAT CSV_GZIP_FORMAT
+    TYPE = 'CSV'
+    COMPRESSION = 'GZIP'
+    FIELD_DELIMITER = ','
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    SKIP_HEADER = 0;
+
+-- Passo 2: Creare uno stage esterno che punta al bucket S3 pubblico
+CREATE OR REPLACE STAGE CITIBIKE_STAGE
+    URL = 's3://snowflake-workshop-lab/citibike-trips-csv/'
+    FILE_FORMAT = CSV_GZIP_FORMAT;
+
+-- Passo 3: Verificare che lo stage sia raggiungibile
+LIST @CITIBIKE_STAGE;
+
+-- Passo 4: Creare la tabella di destinazione
+CREATE OR REPLACE TABLE CITIBIKE_TRIPS (
+    TRIP_ID             INT,
+    STARTTIME           TIMESTAMP,
+    STOPTIME            TIMESTAMP,
+    TRIPDURATION_MIN    INT,
+    START_STATION_ID    INT,
+    END_STATION_ID      INT,
+    BIKEID              VARCHAR(20),
+    BIKE_TYPE           VARCHAR(20),
+    USER_ID             INT,
+    USER_NAME           VARCHAR(100),
+    BIRTH_DATE          DATE,
+    GENDER              VARCHAR(10),
+    USER_TYPE           VARCHAR(50),
+    PAYMENT_METHOD      VARCHAR(20),
+    PAYMENT_PROVIDER    VARCHAR(20)
+);
+
+-- Passo 5: Caricare i dati con COPY INTO (un singolo file per velocità)
+COPY INTO CITIBIKE_TRIPS
+    FROM @CITIBIKE_STAGE
+    PATTERN = '.*data_0_1_0.csv.gz'
+    ON_ERROR = 'CONTINUE';
+
+-- Passo 6: Verificare il caricamento
+SELECT COUNT(*) AS righe_caricate FROM CITIBIKE_TRIPS;
+SELECT * FROM CITIBIKE_TRIPS LIMIT 5;
+</code></pre>
+<p><strong>Nota:</strong> Il comando <code>LIST</code> mostra i file disponibili nello stage. Il <code>PATTERN</code> nel <code>COPY INTO</code> limita il caricamento a un singolo file per velocizzare l'esempio. Rimuovendo il <code>PATTERN</code> si caricano tutti i file presenti.</p>
+
+<h3>Esercizio Pratico 1</h3>
+<p>Scrivi una query che mostri i top 5 programmi per share medio, includendo genere e canale.</p>
+<hr />
+<h2>Modulo 2: Zero Copy Cloning e Time Travel (20 min)</h2>
+<blockquote>
+<p>Il <strong>Zero Copy Cloning</strong> crea una copia istantanea di tabelle, schema o database senza duplicare i dati fisici — lo storage viene condiviso fino a quando una delle copie viene modificata. Il <strong>Time Travel</strong> permette di accedere ai dati storici (fino a 90 giorni) per recuperare dati cancellati, confrontare versioni e fare audit.</p>
+</blockquote>
+<h3>Obiettivi di Apprendimento</h3>
+<ul>
+<li>Clonare tabelle e schema senza costi di storage aggiuntivi</li>
+<li>Utilizzare Time Travel per recuperare dati modificati o cancellati</li>
+<li>Comprendere UNDROP per ripristinare oggetti eliminati</li>
+</ul>
+<h3>Istruzioni Passo-Passo</h3>
+<h4>Step 2.1: Zero Copy Clone di una Tabella</h4>
+<pre><code class="language-sql">USE ROLE SYSADMIN;
+USE SCHEMA MEDIASET_LAB.RAW;
+
+-- Clona la tabella PROGRAMMI_TV (istantaneo, zero storage aggiuntivo)
+CREATE OR REPLACE TABLE PROGRAMMI_TV_CLONE CLONE PROGRAMMI_TV;
+
+-- Verifica: il clone contiene gli stessi dati
+SELECT COUNT(*) as righe_originale FROM PROGRAMMI_TV;
+SELECT COUNT(*) as righe_clone FROM PROGRAMMI_TV_CLONE;
+</code></pre>
+<p><strong>Nota:</strong> Il clone è un oggetto indipendente. Le modifiche al clone NON influenzano l'originale e viceversa.</p>
+<h4>Step 2.2: Modifica Indipendente del Clone</h4>
+<pre><code class="language-sql">-- Modifica il clone: aggiorna un record
+UPDATE PROGRAMMI_TV_CLONE 
+SET costo_episodio_eur = 999999 
+WHERE titolo = 'Grande Fratello VIP';
+
+-- Verifica: il clone è stato modificato
+SELECT titolo, costo_episodio_eur 
+FROM PROGRAMMI_TV_CLONE 
+WHERE titolo = 'Grande Fratello VIP';
+
+-- Verifica: l'originale è rimasto invariato
+SELECT titolo, costo_episodio_eur 
+FROM PROGRAMMI_TV 
+WHERE titolo = 'Grande Fratello VIP';
+</code></pre>
+<h4>Step 2.3: Time Travel - Recupero Dati Cancellati</h4>
+<pre><code class="language-sql">-- Salva il conteggio attuale
+SELECT COUNT(*) as righe_prima FROM PROGRAMMI_TV;
+
+-- Cancella alcuni record
+DELETE FROM PROGRAMMI_TV WHERE genere = 'Reality';
+
+-- Verifica la cancellazione
+SELECT COUNT(*) as righe_dopo FROM PROGRAMMI_TV;
+
+-- Time Travel: vedi i dati com'erano 1 minuto fa
+SELECT COUNT(*) as righe_nel_passato 
+FROM PROGRAMMI_TV AT (OFFSET =&gt; -60);
+
+-- Ripristina i dati cancellati usando Time Travel
+INSERT INTO PROGRAMMI_TV
+SELECT * FROM PROGRAMMI_TV AT (OFFSET =&gt; -60)
+WHERE genere = 'Reality';
+
+-- Verifica il ripristino
+SELECT COUNT(*) as righe_ripristinate FROM PROGRAMMI_TV;
+</code></pre>
+<h4>Step 2.4: UNDROP - Ripristino di una Tabella Eliminata</h4>
+<pre><code class="language-sql">-- Elimina la tabella clone
+DROP TABLE PROGRAMMI_TV_CLONE;
+
+-- Prova a interrogarla (errore!)
+-- SELECT * FROM PROGRAMMI_TV_CLONE;
+
+-- Ripristina con UNDROP
+UNDROP TABLE PROGRAMMI_TV_CLONE;
+
+-- Verifica: la tabella è tornata
+SELECT COUNT(*) FROM PROGRAMMI_TV_CLONE;
+
+-- Pulizia: elimina definitivamente il clone
+DROP TABLE PROGRAMMI_TV_CLONE;
+</code></pre>
+<h3>Esercizio Pratico 2</h3>
+<p>Clona l'intero schema <code>RAW</code> in un nuovo schema <code>RAW_BACKUP</code> usando <code>CREATE SCHEMA RAW_BACKUP CLONE RAW</code> e verifica che tutte le tabelle siano presenti.</p>
+<hr />
+<h2>Modulo 3: Row &amp; Column Level Security (30 min)</h2>
+<blockquote>
+<p>Le <strong>Masking Policy</strong> nascondono o offuscano dati sensibili (PII) a livello di colonna in base al ruolo dell'utente. Le <strong>Row Access Policy</strong> filtrano automaticamente le righe visibili, garantendo che ogni utente veda solo i dati di sua competenza senza modificare le query.</p>
+</blockquote>
+<h3>Obiettivi di Apprendimento</h3>
+<ul>
+<li>Implementare masking policy per proteggere dati sensibili</li>
+<li>Creare row access policy per filtrare dati per ruolo</li>
+<li>Testare le policy con ruoli diversi</li>
+</ul>
+<h3>Istruzioni Passo-Passo</h3>
+<h4>Step 3.1: Creazione Masking Policy per Email</h4>
+<pre><code class="language-sql">USE SCHEMA MEDIASET_LAB.SECURITY;
+
+CREATE OR REPLACE MASKING POLICY email_mask AS (val STRING) RETURNS STRING -&gt;
+    CASE
+        WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN') THEN val
+        WHEN CURRENT_ROLE() = 'MEDIASET_MARKETING' THEN 
+            REGEXP_REPLACE(val, '(.{2})(.*)(@.*)', '\\1***\\3')
+        ELSE '***RISERVATO***'
+    END;
+</code></pre>
+<h4>Step 3.2: Applicazione della Policy</h4>
+<pre><code class="language-sql">ALTER TABLE MEDIASET_LAB.RAW.ABBONATI 
+    MODIFY COLUMN email SET MASKING POLICY email_mask;
+</code></pre>
+<h4>Step 3.3: Test con Ruoli Diversi</h4>
+<pre><code class="language-sql">-- Test come ADMIN (vede tutto)
+USE ROLE MEDIASET_ADMIN;
+SELECT nome, cognome, email FROM MEDIASET_LAB.RAW.ABBONATI LIMIT 5;
+
+-- Test come MARKETING (vede parzialmente)
+USE ROLE MEDIASET_MARKETING;
+SELECT nome, cognome, email FROM MEDIASET_LAB.RAW.ABBONATI LIMIT 5;
+
+-- Test come ANALYST (vede mascherato)
+USE ROLE MEDIASET_ANALYST;
+SELECT nome, cognome, email FROM MEDIASET_LAB.RAW.ABBONATI LIMIT 5;
+</code></pre>
+<h4>Step 3.4: Row Access Policy</h4>
+<pre><code class="language-sql">USE ROLE ACCOUNTADMIN;
+
+-- Crea mapping ruolo-regione
+CREATE OR REPLACE TABLE MEDIASET_LAB.SECURITY.ROLE_REGION_MAPPING (
+    role_name VARCHAR(100),
+    regione VARCHAR(50)
+);
+
+INSERT INTO MEDIASET_LAB.SECURITY.ROLE_REGION_MAPPING VALUES
+('MEDIASET_REGIONALE_NORD', 'Lombardia'),
+('MEDIASET_REGIONALE_NORD', 'Piemonte'),
+('MEDIASET_REGIONALE_NORD', 'Veneto'),
+('MEDIASET_REGIONALE_SUD', 'Campania'),
+('MEDIASET_REGIONALE_SUD', 'Sicilia'),
+('MEDIASET_REGIONALE_SUD', 'Puglia');
+
+-- Crea la policy
+CREATE OR REPLACE ROW ACCESS POLICY region_access_policy 
+AS (regione_col VARCHAR) RETURNS BOOLEAN -&gt;
+    CASE
+        WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN', 'MEDIASET_ANALYST') THEN TRUE
+        WHEN CURRENT_ROLE() = 'MEDIASET_MARKETING' THEN TRUE
+        WHEN EXISTS (
+            SELECT 1 FROM MEDIASET_LAB.SECURITY.ROLE_REGION_MAPPING 
+            WHERE role_name = CURRENT_ROLE() AND regione = regione_col
+        ) THEN TRUE
+        ELSE FALSE
+    END;
+
+-- Applica la policy
+ALTER TABLE MEDIASET_LAB.RAW.ASCOLTI 
+    ADD ROW ACCESS POLICY region_access_policy ON (regione);
+</code></pre>
+<h4>Step 3.5: Test Row Access Policy</h4>
+<pre><code class="language-sql">-- Come REGIONALE_NORD vedo solo regioni del nord
+USE ROLE MEDIASET_REGIONALE_NORD;
+SELECT DISTINCT regione FROM MEDIASET_LAB.RAW.ASCOLTI;
+
+-- Come REGIONALE_SUD vedo solo regioni del sud
+USE ROLE MEDIASET_REGIONALE_SUD;
+SELECT DISTINCT regione FROM MEDIASET_LAB.RAW.ASCOLTI;
+</code></pre>
+<h3>Esercizio Pratico 3</h3>
+<p>Crea una masking policy per il campo <code>telefono</code> che mostri solo le prime 6 cifre ai ruoli non admin.</p>
+<hr />
+<h2>Modulo 4: Data Pipelines - Dynamic Tables, Streams &amp; Tasks (35 min)</h2>
+<blockquote>
+<p>Le <strong>Dynamic Tables</strong> sono tabelle che si aggiornano automaticamente quando cambiano i dati sorgente. Definisci la trasformazione SQL una volta e Snowflake gestisce il refresh incrementale. Gli <strong>Streams</strong> catturano le modifiche (CDC) su una tabella, mentre i <strong>Tasks</strong> permettono di schedulare operazioni SQL. Insieme, offrono pipeline ETL declarative e event-driven.</p>
+</blockquote>
+<h3>Obiettivi di Apprendimento</h3>
+<ul>
+<li>Comprendere il concetto di Dynamic Tables</li>
+<li>Creare pipeline di trasformazione dati automatiche</li>
+<li>Monitorare lo stato delle Dynamic Tables</li>
+<li>Utilizzare Streams e Tasks per pipeline event-driven</li>
+</ul>
+<h3>Istruzioni Passo-Passo</h3>
+<h4>Step 4.1: Prima Dynamic Table - Ascolti Giornalieri</h4>
+<pre><code class="language-sql">USE ROLE ACCOUNTADMIN;
+USE SCHEMA MEDIASET_LAB.ANALYTICS;
+
+CREATE OR REPLACE DYNAMIC TABLE ASCOLTI_GIORNALIERI
+    TARGET_LAG = '1 hour'
+    WAREHOUSE = MEDIASET_WH
+AS
+SELECT 
+    a.data_rilevazione,
+    p.programma_id,
+    p.titolo,
+    p.genere,
+    p.canale,
+    SUM(a.telespettatori) as telespettatori_totali,
+    AVG(a.share_percentuale) as share_medio
+FROM MEDIASET_LAB.RAW.ASCOLTI a
+JOIN MEDIASET_LAB.RAW.PROGRAMMI_TV p ON a.programma_id = p.programma_id
+GROUP BY a.data_rilevazione, p.programma_id, p.titolo, p.genere, p.canale;
+</code></pre>
+<h4>Step 4.2: Dynamic Table a Cascata - Top Settimanali</h4>
+<pre><code class="language-sql">CREATE OR REPLACE DYNAMIC TABLE TOP_PROGRAMMI_SETTIMANA
+    TARGET_LAG = '1 hour'
+    WAREHOUSE = MEDIASET_WH
+AS
+WITH ranked AS (
+    SELECT 
+        DATE_TRUNC('week', data_rilevazione) as settimana,
+        titolo,
+        genere,
+        AVG(share_medio) as share_medio_settimana,
+        ROW_NUMBER() OVER (
+            PARTITION BY DATE_TRUNC('week', data_rilevazione) 
+            ORDER BY AVG(share_medio) DESC
+        ) as rank
+    FROM ASCOLTI_GIORNALIERI
+    GROUP BY DATE_TRUNC('week', data_rilevazione), titolo, genere
+)
+SELECT * FROM ranked WHERE rank &lt;= 10;
+</code></pre>
+<h4>Step 4.3: Verifica e Monitoraggio</h4>
+<pre><code class="language-sql">-- Visualizza lo stato
+SHOW DYNAMIC TABLES IN SCHEMA MEDIASET_LAB.ANALYTICS;
+
+-- Query sulla dynamic table
+SELECT * FROM TOP_PROGRAMMI_SETTIMANA 
+ORDER BY settimana DESC, rank;
+</code></pre>
+<h4>Step 4.4: Simulazione Aggiornamento</h4>
+<pre><code class="language-sql">-- Inserisci nuovi dati
+INSERT INTO MEDIASET_LAB.RAW.ASCOLTI VALUES
+(99999, 1, 2, CURRENT_DATE(), 'Prime Time', 'Lombardia', 3500000, 28.5, 'Adulti 25-54', 'Smart TV');
+
+-- Forza refresh (opzionale per demo)
+ALTER DYNAMIC TABLE ASCOLTI_GIORNALIERI REFRESH;
+
+-- Verifica aggiornamento
+SELECT * FROM ASCOLTI_GIORNALIERI WHERE data_rilevazione = CURRENT_DATE();
+</code></pre>
+<h3>Esercizio Pratico 4</h3>
+<p>Crea una Dynamic Table che calcoli i KPI pubblicitari aggregati per settore merceologico.</p>
+<h3>Streams &amp; Tasks: Pipeline Event-Driven</h3>
+<blockquote>
+<p>Gli <strong>Streams</strong> tracciano le modifiche (INSERT, UPDATE, DELETE) su una tabella sorgente tramite Change Data Capture (CDC). I <strong>Tasks</strong> eseguono istruzioni SQL su base schedulata o quando uno stream contiene nuovi dati. Combinati, permettono di costruire pipeline reattive senza orchestrazione esterna.</p>
+</blockquote>
+<h4>Step 4.5: Creazione di uno Stream sulla Tabella ASCOLTI</h4>
+<pre><code class="language-sql">USE ROLE ACCOUNTADMIN;
+USE SCHEMA MEDIASET_LAB.RAW;
+
+-- Crea uno stream per catturare le modifiche sulla tabella ASCOLTI
+CREATE OR REPLACE STREAM ASCOLTI_STREAM ON TABLE ASCOLTI
+    APPEND_ONLY = TRUE;
+
+-- Verifica: lo stream è vuoto (nessuna modifica ancora)
+SELECT * FROM ASCOLTI_STREAM;
+</code></pre>
+<p><strong>Nota:</strong> <code>APPEND_ONLY = TRUE</code> cattura solo gli INSERT, ideale per dati di tipo log/eventi come gli ascolti TV.</p>
+<h4>Step 4.6: Tabella Target e Task per Processare lo Stream</h4>
+<pre><code class="language-sql">USE SCHEMA MEDIASET_LAB.ANALYTICS;
+
+-- Crea una tabella target per i nuovi ascolti processati
+CREATE OR REPLACE TABLE NUOVI_ASCOLTI_LOG (
+    data_elaborazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+    programma_id NUMBER,
+    data_rilevazione DATE,
+    regione VARCHAR(50),
+    telespettatori NUMBER,
+    share_percentuale FLOAT,
+    num_record_processati NUMBER
+);
+
+-- Crea un task che consuma lo stream e scrive nella tabella target
+CREATE OR REPLACE TASK PROCESSA_NUOVI_ASCOLTI
+    WAREHOUSE = MEDIASET_WH
+    SCHEDULE = '5 MINUTE'
+    WHEN SYSTEM$STREAM_HAS_DATA('MEDIASET_LAB.RAW.ASCOLTI_STREAM')
+AS
+INSERT INTO MEDIASET_LAB.ANALYTICS.NUOVI_ASCOLTI_LOG (
+    programma_id, data_rilevazione, regione, 
+    telespettatori, share_percentuale, num_record_processati
+)
+SELECT 
+    programma_id,
+    data_rilevazione,
+    regione,
+    SUM(telespettatori),
+    AVG(share_percentuale),
+    COUNT(*)
+FROM MEDIASET_LAB.RAW.ASCOLTI_STREAM
+GROUP BY programma_id, data_rilevazione, regione;
+
+-- Attiva il task
+ALTER TASK PROCESSA_NUOVI_ASCOLTI RESUME;
+
+-- Verifica stato del task
+SHOW TASKS IN SCHEMA MEDIASET_LAB.ANALYTICS;
+</code></pre>
+<p><strong>Nota:</strong> La clausola <code>WHEN SYSTEM$STREAM_HAS_DATA(...)</code> fa sì che il task si esegua solo quando ci sono nuovi dati nello stream, risparmiando risorse.</p>
+<h4>Step 4.7: Test della Pipeline Stream + Task</h4>
+<pre><code class="language-sql">-- Inserisci nuovi dati nella tabella sorgente
+INSERT INTO MEDIASET_LAB.RAW.ASCOLTI VALUES
+(99801, 3, 5, CURRENT_DATE(), 'Access Prime Time', 'Lombardia', 2100000, 19.3, 'Adulti 25-54', 'Smart TV'),
+(99802, 3, 5, CURRENT_DATE(), 'Access Prime Time', 'Lazio', 1500000, 16.8, 'Adulti 25-54', 'TV Tradizionale');
+
+-- Verifica che lo stream ha catturato le modifiche
+SELECT * FROM MEDIASET_LAB.RAW.ASCOLTI_STREAM;
+
+-- Esegui il task manualmente (senza aspettare lo schedule)
+EXECUTE TASK PROCESSA_NUOVI_ASCOLTI;
+
+-- Verifica i risultati nella tabella target
+SELECT * FROM MEDIASET_LAB.ANALYTICS.NUOVI_ASCOLTI_LOG
+ORDER BY data_elaborazione DESC;
+
+-- Lo stream è ora vuoto (i dati sono stati consumati)
+SELECT * FROM MEDIASET_LAB.RAW.ASCOLTI_STREAM;
+</code></pre>
+<h4>Step 4.8: Pulizia Tasks</h4>
+<pre><code class="language-sql">-- Sospendi il task quando non serve più (best practice)
+ALTER TASK PROCESSA_NUOVI_ASCOLTI SUSPEND;
+</code></pre>
+<h3>Esercizio Pratico 5</h3>
+<p>Crea uno stream sulla tabella <code>FEEDBACK_SOCIAL</code> e un task che, quando arrivano nuovi feedback, inserisca un riepilogo aggregato per <code>sentiment</code> in una nuova tabella <code>ANALYTICS.FEEDBACK_RIEPILOGO</code>.</p>
+<hr />
+<h2>Riepilogo e Best Practices</h2>
+<h3>Cosa Abbiamo Imparato</h3>
+<ol>
+<li><strong>Snowflake Basics</strong>: Database, Schema, Warehouse, Ruoli</li>
+<li><strong>Zero Copy Cloning e Time Travel</strong>: Clonazione istantanea e recupero dati storici</li>
+<li><strong>Security</strong>: Masking Policy, Row Access Policy</li>
+<li><strong>Pipelines</strong>: Dynamic Tables per ETL automatico, Streams &amp; Tasks per pipeline event-driven</li>
+</ol>
+<h3>Best Practices</h3>
+<ul>
+<li>Usa ruoli specifici per ogni tipo di utente</li>
+<li>Implementa masking su tutti i dati sensibili (PII)</li>
+<li>Preferisci Dynamic Tables per trasformazioni ricorrenti</li>
+<li>Usa Zero Copy Cloning per ambienti di test/dev senza costi di storage</li>
+<li>Abilita Time Travel per proteggere i dati da cancellazioni accidentali</li>
+<li>Sospendi sempre i Tasks quando non sono necessari per risparmiare crediti</li>
+</ul>
+<h3>Risorse Utili</h3>
+<ul>
+<li><a href="https://docs.snowflake.com">Documentazione Snowflake</a></li>
+<li><a href="https://community.snowflake.com">Snowflake Community</a></li>
+</ul>
+<hr />
+<h2>Cleanup (Opzionale)</h2>
+<p>Se desideri rimuovere tutti gli oggetti creati:</p>
+<pre><code class="language-sql">USE ROLE ACCOUNTADMIN;
+
+-- Rimuovi il database (elimina tutto)
+DROP DATABASE IF EXISTS MEDIASET_LAB;
+
+-- Rimuovi i ruoli
+DROP ROLE IF EXISTS MEDIASET_ADMIN;
+DROP ROLE IF EXISTS MEDIASET_ANALYST;
+DROP ROLE IF EXISTS MEDIASET_MARKETING;
+DROP ROLE IF EXISTS MEDIASET_REGIONALE_NORD;
+DROP ROLE IF EXISTS MEDIASET_REGIONALE_SUD;
+
+-- Rimuovi il warehouse
+DROP WAREHOUSE IF EXISTS MEDIASET_WH;
+</code></pre>
+<hr />
+<p><strong>Grazie per aver partecipato al workshop!</strong></p>
+<p>Per domande o supporto: [inserire contatto]</p>
+</body>
+</html>

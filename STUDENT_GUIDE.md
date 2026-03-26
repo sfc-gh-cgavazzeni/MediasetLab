@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| **Durata** | 3.5 ore |
+| **Durata** | 2 ore |
 | **Livello** | Introduttivo/Intermedio |
 | **Prerequisiti** | Account Snowflake attivo, conoscenze base SQL |
 | **Settore** | TV Broadcasting |
@@ -18,17 +18,14 @@
 
 | Orario | Modulo | Durata |
 |--------|--------|--------|
-| 00:00 - 00:40 | Modulo 1: Setup e Basi Snowflake | 40 min |
-| 00:40 - 01:15 | Modulo 2: Row & Column Level Security | 35 min |
-| 01:15 - 01:45 | Modulo 3: Data Pipelines (Dynamic Tables) | 30 min |
-| 01:45 - 02:00 | **Pausa** | 15 min |
-| 02:00 - 02:25 | Modulo 4: Cortex AI SQL Functions | 25 min |
-| 02:25 - 03:05 | Modulo 5: Semantic Views & Cortex Analyst | 40 min |
-| 03:05 - 03:30 | Modulo 6: Cortex Search & Snowflake Intelligence | 25 min |
+| 00:00 - 00:35 | Modulo 1: Setup e Basi Snowflake | 35 min |
+| 00:35 - 00:55 | Modulo 2: Zero Copy Cloning e Time Travel | 20 min |
+| 00:55 - 01:25 | Modulo 3: Row & Column Level Security | 30 min |
+| 01:25 - 02:00 | Modulo 4: Data Pipelines (Dynamic Tables, Streams & Tasks) | 35 min |
 
 ---
 
-## Modulo 1: Setup e Basi Snowflake (40 min)
+## Modulo 1: Setup e Basi Snowflake (35 min)
 
 > **Snowflake** è una piattaforma dati cloud-native che separa storage e compute. I **Database** organizzano i dati in **Schema**, mentre i **Warehouse** forniscono risorse di calcolo elastiche on-demand. I **Ruoli** controllano l'accesso seguendo il principio del least privilege.
 
@@ -104,10 +101,55 @@ GRANT ROLE MEDIASET_REGIONALE_SUD TO ROLE MEDIASET_ANALYST;
 
 **Best Practice:** Tutti i ruoli custom devono essere assegnati a SYSADMIN per mantenere la gerarchia standard di Snowflake.
 
-#### Step 1.5: Caricamento Dati
-Esegui lo script completo `01_setup.sql` per caricare tutti i dati sintetici.
+#### Step 1.5: Creazione Tabelle
+Esegui le sezioni 1-4 dello script `01_setup_data.sql` per creare database, schema, warehouse, ruoli e tabelle.
 
-#### Step 1.6: Query di Verifica
+#### Step 1.6: Caricamento Dati da CSV tramite Snowsight
+
+I dati sono forniti come file CSV nella cartella `data/`. Per caricare ogni tabella:
+
+1. Nel menu laterale di Snowsight, clicca su **Data** > **Databases**
+2. Naviga fino a **MEDIASET_LAB** > **RAW**
+3. Clicca sulla tabella da popolare (es. `PROGRAMMI_TV`)
+4. In alto a destra, clicca su **Load Data**
+5. Seleziona il warehouse **MEDIASET_WH**
+6. Clicca su **Browse** e seleziona il file CSV corrispondente dalla cartella `data/`
+7. Nelle opzioni del File Format:
+   - **File Type**: CSV
+   - **Header**: seleziona "First line contains header"
+   - **Field delimiter**: virgola (`,`)
+   - **Field optionally enclosed by**: doppio apice (`"`)
+8. Clicca su **Load** per avviare il caricamento
+
+Ripeti per tutte le tabelle nell'ordine indicato:
+
+| # | Tabella | File CSV | Righe attese |
+|---|---------|----------|--------------|
+| 1 | PROGRAMMI_TV | `data/PROGRAMMI_TV.csv` | 20 |
+| 2 | PALINSESTO | `data/PALINSESTO.csv` | 600 |
+| 3 | ASCOLTI | `data/ASCOLTI.csv` | 5000 |
+| 4 | ABBONATI | `data/ABBONATI.csv` | 20 |
+| 5 | CONTENUTI_DESCRIZIONI | `data/CONTENUTI_DESCRIZIONI.csv` | 20 |
+| 6 | CONTRATTI_PUBBLICITARI | `data/CONTRATTI_PUBBLICITARI.csv` | 15 |
+| 7 | FEEDBACK_SOCIAL | `data/FEEDBACK_SOCIAL.csv` | 20 |
+
+**Nota:** Carica `PROGRAMMI_TV` per prima, poiché le altre tabelle contengono riferimenti al campo `programma_id`.
+
+#### Step 1.7: Verifica Caricamento
+
+```sql
+-- Verifica che tutte le tabelle siano state caricate correttamente
+SELECT 'PROGRAMMI_TV' as tabella, COUNT(*) as righe FROM MEDIASET_LAB.RAW.PROGRAMMI_TV
+UNION ALL SELECT 'PALINSESTO', COUNT(*) FROM MEDIASET_LAB.RAW.PALINSESTO
+UNION ALL SELECT 'ASCOLTI', COUNT(*) FROM MEDIASET_LAB.RAW.ASCOLTI
+UNION ALL SELECT 'ABBONATI', COUNT(*) FROM MEDIASET_LAB.RAW.ABBONATI
+UNION ALL SELECT 'CONTENUTI_DESCRIZIONI', COUNT(*) FROM MEDIASET_LAB.RAW.CONTENUTI_DESCRIZIONI
+UNION ALL SELECT 'CONTRATTI_PUBBLICITARI', COUNT(*) FROM MEDIASET_LAB.RAW.CONTRATTI_PUBBLICITARI
+UNION ALL SELECT 'FEEDBACK_SOCIAL', COUNT(*) FROM MEDIASET_LAB.RAW.FEEDBACK_SOCIAL
+ORDER BY tabella;
+```
+
+#### Step 1.8: Query di Verifica
 ```sql
 -- Verifica le tabelle create
 SHOW TABLES IN SCHEMA MEDIASET_LAB.RAW;
@@ -128,12 +170,162 @@ GROUP BY regione
 ORDER BY share_medio DESC;
 ```
 
+#### Step 1.9: Caricamento Dati da Stage S3 Pubblico
+
+Oltre al caricamento manuale via Snowsight, Snowflake permette di caricare dati direttamente da bucket S3 pubblici utilizzando uno **Stage esterno**. Questo approccio è ideale per automatizzare l'ingestion e lavorare con dataset di grandi dimensioni senza scaricarli in locale.
+
+In questo esempio utilizziamo il dataset **Citibike Trips**, ospitato nel bucket S3 pubblico `s3://snowflake-workshop-lab/citibike-trips-csv/` (accessibile senza credenziali AWS).
+
+```sql
+USE ROLE SYSADMIN;
+USE SCHEMA MEDIASET_LAB.RAW;
+USE WAREHOUSE MEDIASET_WH;
+
+-- Passo 1: Creare un file format per CSV compressi (gzip)
+CREATE OR REPLACE FILE FORMAT CSV_GZIP_FORMAT
+    TYPE = 'CSV'
+    COMPRESSION = 'GZIP'
+    FIELD_DELIMITER = ','
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    SKIP_HEADER = 0;
+
+-- Passo 2: Creare uno stage esterno che punta al bucket S3 pubblico
+CREATE OR REPLACE STAGE CITIBIKE_STAGE
+    URL = 's3://snowflake-workshop-lab/citibike-trips-csv/'
+    FILE_FORMAT = CSV_GZIP_FORMAT;
+
+-- Passo 3: Verificare che lo stage sia raggiungibile
+LIST @CITIBIKE_STAGE;
+
+-- Passo 4: Creare la tabella di destinazione
+CREATE OR REPLACE TABLE CITIBIKE_TRIPS (
+    TRIP_ID             INT,
+    STARTTIME           TIMESTAMP,
+    STOPTIME            TIMESTAMP,
+    TRIPDURATION_MIN    INT,
+    START_STATION_ID    INT,
+    END_STATION_ID      INT,
+    BIKEID              VARCHAR(20),
+    BIKE_TYPE           VARCHAR(20),
+    USER_ID             INT,
+    USER_NAME           VARCHAR(100),
+    BIRTH_DATE          DATE,
+    GENDER              VARCHAR(10),
+    USER_TYPE           VARCHAR(50),
+    PAYMENT_METHOD      VARCHAR(20),
+    PAYMENT_PROVIDER    VARCHAR(20)
+);
+
+-- Passo 5: Caricare i dati con COPY INTO (un singolo file per velocità)
+COPY INTO CITIBIKE_TRIPS
+    FROM @CITIBIKE_STAGE
+    PATTERN = '.*data_0_1_0.csv.gz'
+    ON_ERROR = 'CONTINUE';
+
+-- Passo 6: Verificare il caricamento
+SELECT COUNT(*) AS righe_caricate FROM CITIBIKE_TRIPS;
+SELECT * FROM CITIBIKE_TRIPS LIMIT 5;
+```
+
+**Nota:** Il comando `LIST` mostra i file disponibili nello stage. Il `PATTERN` nel `COPY INTO` limita il caricamento a un singolo file per velocizzare l'esempio. Rimuovendo il `PATTERN` si caricano tutti i file presenti.
+
 ### Esercizio Pratico 1
 Scrivi una query che mostri i top 5 programmi per share medio, includendo genere e canale.
 
 ---
 
-## Modulo 2: Row & Column Level Security (35 min)
+## Modulo 2: Zero Copy Cloning e Time Travel (20 min)
+
+> Il **Zero Copy Cloning** crea una copia istantanea di tabelle, schema o database senza duplicare i dati fisici — lo storage viene condiviso fino a quando una delle copie viene modificata. Il **Time Travel** permette di accedere ai dati storici (fino a 90 giorni) per recuperare dati cancellati, confrontare versioni e fare audit.
+
+### Obiettivi di Apprendimento
+- Clonare tabelle e schema senza costi di storage aggiuntivi
+- Utilizzare Time Travel per recuperare dati modificati o cancellati
+- Comprendere UNDROP per ripristinare oggetti eliminati
+
+### Istruzioni Passo-Passo
+
+#### Step 2.1: Zero Copy Clone di una Tabella
+```sql
+USE ROLE SYSADMIN;
+USE SCHEMA MEDIASET_LAB.RAW;
+
+-- Clona la tabella PROGRAMMI_TV (istantaneo, zero storage aggiuntivo)
+CREATE OR REPLACE TABLE PROGRAMMI_TV_CLONE CLONE PROGRAMMI_TV;
+
+-- Verifica: il clone contiene gli stessi dati
+SELECT COUNT(*) as righe_originale FROM PROGRAMMI_TV;
+SELECT COUNT(*) as righe_clone FROM PROGRAMMI_TV_CLONE;
+```
+
+**Nota:** Il clone è un oggetto indipendente. Le modifiche al clone NON influenzano l'originale e viceversa.
+
+#### Step 2.2: Modifica Indipendente del Clone
+```sql
+-- Modifica il clone: aggiorna un record
+UPDATE PROGRAMMI_TV_CLONE 
+SET costo_episodio_eur = 999999 
+WHERE titolo = 'Grande Fratello VIP';
+
+-- Verifica: il clone è stato modificato
+SELECT titolo, costo_episodio_eur 
+FROM PROGRAMMI_TV_CLONE 
+WHERE titolo = 'Grande Fratello VIP';
+
+-- Verifica: l'originale è rimasto invariato
+SELECT titolo, costo_episodio_eur 
+FROM PROGRAMMI_TV 
+WHERE titolo = 'Grande Fratello VIP';
+```
+
+#### Step 2.3: Time Travel - Recupero Dati Cancellati
+```sql
+-- Salva il conteggio attuale
+SELECT COUNT(*) as righe_prima FROM PROGRAMMI_TV;
+
+-- Cancella alcuni record
+DELETE FROM PROGRAMMI_TV WHERE genere = 'Reality';
+
+-- Verifica la cancellazione
+SELECT COUNT(*) as righe_dopo FROM PROGRAMMI_TV;
+
+-- Time Travel: vedi i dati com'erano 1 minuto fa
+SELECT COUNT(*) as righe_nel_passato 
+FROM PROGRAMMI_TV AT (OFFSET => -60);
+
+-- Ripristina i dati cancellati usando Time Travel
+INSERT INTO PROGRAMMI_TV
+SELECT * FROM PROGRAMMI_TV AT (OFFSET => -60)
+WHERE genere = 'Reality';
+
+-- Verifica il ripristino
+SELECT COUNT(*) as righe_ripristinate FROM PROGRAMMI_TV;
+```
+
+#### Step 2.4: UNDROP - Ripristino di una Tabella Eliminata
+```sql
+-- Elimina la tabella clone
+DROP TABLE PROGRAMMI_TV_CLONE;
+
+-- Prova a interrogarla (errore!)
+-- SELECT * FROM PROGRAMMI_TV_CLONE;
+
+-- Ripristina con UNDROP
+UNDROP TABLE PROGRAMMI_TV_CLONE;
+
+-- Verifica: la tabella è tornata
+SELECT COUNT(*) FROM PROGRAMMI_TV_CLONE;
+
+-- Pulizia: elimina definitivamente il clone
+DROP TABLE PROGRAMMI_TV_CLONE;
+```
+
+### Esercizio Pratico 2
+Clona l'intero schema `RAW` in un nuovo schema `RAW_BACKUP` usando `CREATE SCHEMA RAW_BACKUP CLONE RAW` e verifica che tutte le tabelle siano presenti.
+
+---
+
+## Modulo 3: Row & Column Level Security (30 min)
 
 > Le **Masking Policy** nascondono o offuscano dati sensibili (PII) a livello di colonna in base al ruolo dell'utente. Le **Row Access Policy** filtrano automaticamente le righe visibili, garantendo che ogni utente veda solo i dati di sua competenza senza modificare le query.
 
@@ -144,7 +336,7 @@ Scrivi una query che mostri i top 5 programmi per share medio, includendo genere
 
 ### Istruzioni Passo-Passo
 
-#### Step 2.1: Creazione Masking Policy per Email
+#### Step 3.1: Creazione Masking Policy per Email
 ```sql
 USE SCHEMA MEDIASET_LAB.SECURITY;
 
@@ -157,13 +349,13 @@ CREATE OR REPLACE MASKING POLICY email_mask AS (val STRING) RETURNS STRING ->
     END;
 ```
 
-#### Step 2.2: Applicazione della Policy
+#### Step 3.2: Applicazione della Policy
 ```sql
 ALTER TABLE MEDIASET_LAB.RAW.ABBONATI 
     MODIFY COLUMN email SET MASKING POLICY email_mask;
 ```
 
-#### Step 2.3: Test con Ruoli Diversi
+#### Step 3.3: Test con Ruoli Diversi
 ```sql
 -- Test come ADMIN (vede tutto)
 USE ROLE MEDIASET_ADMIN;
@@ -178,7 +370,7 @@ USE ROLE MEDIASET_ANALYST;
 SELECT nome, cognome, email FROM MEDIASET_LAB.RAW.ABBONATI LIMIT 5;
 ```
 
-#### Step 2.4: Row Access Policy
+#### Step 3.4: Row Access Policy
 ```sql
 USE ROLE ACCOUNTADMIN;
 
@@ -201,6 +393,7 @@ CREATE OR REPLACE ROW ACCESS POLICY region_access_policy
 AS (regione_col VARCHAR) RETURNS BOOLEAN ->
     CASE
         WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN', 'MEDIASET_ANALYST') THEN TRUE
+        WHEN CURRENT_ROLE() = 'MEDIASET_MARKETING' THEN TRUE
         WHEN EXISTS (
             SELECT 1 FROM MEDIASET_LAB.SECURITY.ROLE_REGION_MAPPING 
             WHERE role_name = CURRENT_ROLE() AND regione = regione_col
@@ -213,7 +406,7 @@ ALTER TABLE MEDIASET_LAB.RAW.ASCOLTI
     ADD ROW ACCESS POLICY region_access_policy ON (regione);
 ```
 
-#### Step 2.5: Test Row Access Policy
+#### Step 3.5: Test Row Access Policy
 ```sql
 -- Come REGIONALE_NORD vedo solo regioni del nord
 USE ROLE MEDIASET_REGIONALE_NORD;
@@ -224,23 +417,24 @@ USE ROLE MEDIASET_REGIONALE_SUD;
 SELECT DISTINCT regione FROM MEDIASET_LAB.RAW.ASCOLTI;
 ```
 
-### Esercizio Pratico 2
+### Esercizio Pratico 3
 Crea una masking policy per il campo `telefono` che mostri solo le prime 6 cifre ai ruoli non admin.
 
 ---
 
-## Modulo 3: Data Pipelines con Dynamic Tables (30 min)
+## Modulo 4: Data Pipelines - Dynamic Tables, Streams & Tasks (35 min)
 
-> Le **Dynamic Tables** sono tabelle che si aggiornano automaticamente quando cambiano i dati sorgente. Definisci la trasformazione SQL una volta e Snowflake gestisce il refresh incrementale. Ideali per pipeline ETL declarative senza orchestrazione esterna.
+> Le **Dynamic Tables** sono tabelle che si aggiornano automaticamente quando cambiano i dati sorgente. Definisci la trasformazione SQL una volta e Snowflake gestisce il refresh incrementale. Gli **Streams** catturano le modifiche (CDC) su una tabella, mentre i **Tasks** permettono di schedulare operazioni SQL. Insieme, offrono pipeline ETL declarative e event-driven.
 
 ### Obiettivi di Apprendimento
 - Comprendere il concetto di Dynamic Tables
 - Creare pipeline di trasformazione dati automatiche
 - Monitorare lo stato delle Dynamic Tables
+- Utilizzare Streams e Tasks per pipeline event-driven
 
 ### Istruzioni Passo-Passo
 
-#### Step 3.1: Prima Dynamic Table - Ascolti Giornalieri
+#### Step 4.1: Prima Dynamic Table - Ascolti Giornalieri
 ```sql
 USE ROLE ACCOUNTADMIN;
 USE SCHEMA MEDIASET_LAB.ANALYTICS;
@@ -262,7 +456,7 @@ JOIN MEDIASET_LAB.RAW.PROGRAMMI_TV p ON a.programma_id = p.programma_id
 GROUP BY a.data_rilevazione, p.programma_id, p.titolo, p.genere, p.canale;
 ```
 
-#### Step 3.2: Dynamic Table a Cascata - Top Settimanali
+#### Step 4.2: Dynamic Table a Cascata - Top Settimanali
 ```sql
 CREATE OR REPLACE DYNAMIC TABLE TOP_PROGRAMMI_SETTIMANA
     TARGET_LAG = '1 hour'
@@ -284,7 +478,7 @@ WITH ranked AS (
 SELECT * FROM ranked WHERE rank <= 10;
 ```
 
-#### Step 3.3: Verifica e Monitoraggio
+#### Step 4.3: Verifica e Monitoraggio
 ```sql
 -- Visualizza lo stato
 SHOW DYNAMIC TABLES IN SCHEMA MEDIASET_LAB.ANALYTICS;
@@ -294,11 +488,11 @@ SELECT * FROM TOP_PROGRAMMI_SETTIMANA
 ORDER BY settimana DESC, rank;
 ```
 
-#### Step 3.4: Simulazione Aggiornamento
+#### Step 4.4: Simulazione Aggiornamento
 ```sql
 -- Inserisci nuovi dati
 INSERT INTO MEDIASET_LAB.RAW.ASCOLTI VALUES
-(99999, 1, 2, CURRENT_DATE(), 'Prime Time', 'Lombardia', 3500000, 28.5, 'Adulti', 'Smart TV');
+(99999, 1, 2, CURRENT_DATE(), 'Prime Time', 'Lombardia', 3500000, 28.5, 'Adulti 25-54', 'Smart TV');
 
 -- Forza refresh (opzionale per demo)
 ALTER DYNAMIC TABLE ASCOLTI_GIORNALIERI REFRESH;
@@ -307,246 +501,101 @@ ALTER DYNAMIC TABLE ASCOLTI_GIORNALIERI REFRESH;
 SELECT * FROM ASCOLTI_GIORNALIERI WHERE data_rilevazione = CURRENT_DATE();
 ```
 
-### Esercizio Pratico 3
+### Esercizio Pratico 4
 Crea una Dynamic Table che calcoli i KPI pubblicitari aggregati per settore merceologico.
 
----
+### Streams & Tasks: Pipeline Event-Driven
 
-## Modulo 4: Cortex AI SQL Functions (25 min)
+> Gli **Streams** tracciano le modifiche (INSERT, UPDATE, DELETE) su una tabella sorgente tramite Change Data Capture (CDC). I **Tasks** eseguono istruzioni SQL su base schedulata o quando uno stream contiene nuovi dati. Combinati, permettono di costruire pipeline reattive senza orchestrazione esterna.
 
-> **Cortex AI Functions** sono funzioni SQL native che integrano modelli LLM direttamente nelle query. Analizza sentiment, classifica testi, genera riassunti, traduci contenuti e crea testo con AI—tutto senza uscire da SQL e senza infrastruttura ML da gestire.
-
-### Obiettivi di Apprendimento
-- Utilizzare funzioni AI integrate in SQL
-- Analizzare sentiment di testi
-- Classificare e riassumere contenuti
-- Generare testo con LLM
-
-### Istruzioni Passo-Passo
-
-#### Step 4.1: Analisi Sentiment
+#### Step 4.5: Creazione di uno Stream sulla Tabella ASCOLTI
 ```sql
+USE ROLE ACCOUNTADMIN;
 USE SCHEMA MEDIASET_LAB.RAW;
 
--- Sentiment dei feedback social
-SELECT 
-    f.testo_feedback,
-    p.titolo,
-    SNOWFLAKE.CORTEX.SENTIMENT(f.testo_feedback) as sentiment
-FROM FEEDBACK_SOCIAL f
-JOIN PROGRAMMI_TV p ON f.programma_id = p.programma_id
-ORDER BY sentiment DESC;
+-- Crea uno stream per catturare le modifiche sulla tabella ASCOLTI
+CREATE OR REPLACE STREAM ASCOLTI_STREAM ON TABLE ASCOLTI
+    APPEND_ONLY = TRUE;
+
+-- Verifica: lo stream è vuoto (nessuna modifica ancora)
+SELECT * FROM ASCOLTI_STREAM;
 ```
 
-#### Step 4.2: Classificazione Contenuti
-```sql
--- Classifica feedback per categoria
-SELECT 
-    testo_feedback,
-    SNOWFLAKE.CORTEX.CLASSIFY_TEXT(
-        testo_feedback,
-        ['Positivo', 'Negativo', 'Neutro', 'Critica Costruttiva']
-    ) as categoria
-FROM FEEDBACK_SOCIAL
-LIMIT 10;
-```
+**Nota:** `APPEND_ONLY = TRUE` cattura solo gli INSERT, ideale per dati di tipo log/eventi come gli ascolti TV.
 
-#### Step 4.3: Riassunto Automatico
-```sql
--- Riassumi descrizioni programmi
-SELECT 
-    titolo,
-    SNOWFLAKE.CORTEX.SUMMARIZE(descrizione_completa) as riassunto
-FROM CONTENUTI_DESCRIZIONI
-WHERE LENGTH(descrizione_completa) > 200
-LIMIT 5;
-```
-
-#### Step 4.4: Traduzione
-```sql
--- Traduci in inglese
-SELECT 
-    titolo,
-    descrizione_breve,
-    SNOWFLAKE.CORTEX.TRANSLATE(descrizione_breve, 'it', 'en') as english
-FROM CONTENUTI_DESCRIZIONI
-LIMIT 3;
-```
-
-#### Step 4.5: Generazione Testo con LLM
-```sql
--- Genera tagline promozionali
-SELECT 
-    titolo,
-    SNOWFLAKE.CORTEX.COMPLETE(
-        'mistral-large2',
-        'Genera una tagline accattivante in italiano per: ' || titolo
-    ) as tagline
-FROM CONTENUTI_DESCRIZIONI
-LIMIT 3;
-```
-
-### Esercizio Pratico 4
-Crea una query che identifichi i feedback negativi e generi suggerimenti di miglioramento usando AI_COMPLETE.
-
----
-
-## Modulo 5: Semantic Views & Cortex Analyst (40 min)
-
-> Le **Semantic Views** definiscono metriche e dimensioni di business in modo centralizzato, garantendo definizioni consistenti. **Cortex Analyst** usa queste definizioni per tradurre domande in linguaggio naturale in SQL corretto, permettendo a utenti non tecnici di interrogare i dati.
-
-### Obiettivi di Apprendimento
-- Creare Semantic Views per definire metriche di business
-- Configurare dimensioni e facts
-- Utilizzare Cortex Analyst per query in linguaggio naturale
-
-### Istruzioni Passo-Passo
-
-#### Step 5.1: Creazione Semantic View
+#### Step 4.6: Tabella Target e Task per Processare lo Stream
 ```sql
 USE SCHEMA MEDIASET_LAB.ANALYTICS;
 
-CREATE OR REPLACE SEMANTIC VIEW SV_ANALISI_ASCOLTI
-AS SEMANTIC MODEL
-  TABLES (
-    PROGRAMMI AS (
-      SELECT programma_id, titolo, genere, canale, costo_episodio_eur
-      FROM MEDIASET_LAB.RAW.PROGRAMMI_TV
-      PRIMARY KEY (programma_id)
-      FACTS (costo_episodio_eur SYNONYMS ('costo', 'budget'))
-      DIMENSIONS (
-        titolo SYNONYMS ('nome programma', 'show'),
-        genere SYNONYMS ('tipo', 'categoria'),
-        canale SYNONYMS ('rete', 'emittente')
-      )
-    ),
-    ASCOLTI AS (
-      SELECT ascolto_id, programma_id, data_rilevazione, regione, 
-             telespettatori, share_percentuale, fascia_oraria
-      FROM MEDIASET_LAB.RAW.ASCOLTI
-      PRIMARY KEY (ascolto_id)
-      FACTS (
-        telespettatori SYNONYMS ('spettatori', 'audience'),
-        share_percentuale SYNONYMS ('share', 'quota')
-      )
-      DIMENSIONS (
-        data_rilevazione SYNONYMS ('data', 'giorno'),
-        regione SYNONYMS ('area', 'territorio'),
-        fascia_oraria SYNONYMS ('orario', 'slot')
-      )
-    )
-  )
-  RELATIONSHIPS (
-    ASCOLTI (programma_id) REFERENCES PROGRAMMI (programma_id)
-  )
-  METRICS (
-    TELESPETTATORI_TOTALI AS (
-      SUM(ASCOLTI.telespettatori) 
-      SYNONYMS ('audience totale', 'spettatori totali')
-    ),
-    SHARE_MEDIO AS (
-      AVG(ASCOLTI.share_percentuale) 
-      SYNONYMS ('share medio', 'media share')
-    )
-  );
-```
+-- Crea una tabella target per i nuovi ascolti processati
+CREATE OR REPLACE TABLE NUOVI_ASCOLTI_LOG (
+    data_elaborazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+    programma_id NUMBER,
+    data_rilevazione DATE,
+    regione VARCHAR(50),
+    telespettatori NUMBER,
+    share_percentuale FLOAT,
+    num_record_processati NUMBER
+);
 
-#### Step 5.2: Query sulla Semantic View
-```sql
--- Query usando le metriche definite
+-- Crea un task che consuma lo stream e scrive nella tabella target
+CREATE OR REPLACE TASK PROCESSA_NUOVI_ASCOLTI
+    WAREHOUSE = MEDIASET_WH
+    SCHEDULE = '5 MINUTE'
+    WHEN SYSTEM$STREAM_HAS_DATA('MEDIASET_LAB.RAW.ASCOLTI_STREAM')
+AS
+INSERT INTO MEDIASET_LAB.ANALYTICS.NUOVI_ASCOLTI_LOG (
+    programma_id, data_rilevazione, regione, 
+    telespettatori, share_percentuale, num_record_processati
+)
 SELECT 
-    PROGRAMMI.titolo,
-    PROGRAMMI.genere,
-    TELESPETTATORI_TOTALI,
-    SHARE_MEDIO
-FROM SEMANTIC VIEW SV_ANALISI_ASCOLTI
-GROUP BY PROGRAMMI.titolo, PROGRAMMI.genere
-ORDER BY SHARE_MEDIO DESC
-LIMIT 10;
+    programma_id,
+    data_rilevazione,
+    regione,
+    SUM(telespettatori),
+    AVG(share_percentuale),
+    COUNT(*)
+FROM MEDIASET_LAB.RAW.ASCOLTI_STREAM
+GROUP BY programma_id, data_rilevazione, regione;
+
+-- Attiva il task
+ALTER TASK PROCESSA_NUOVI_ASCOLTI RESUME;
+
+-- Verifica stato del task
+SHOW TASKS IN SCHEMA MEDIASET_LAB.ANALYTICS;
 ```
 
-#### Step 5.3: Cortex Analyst (via Snowsight)
-1. Vai su **AI & ML** > **Cortex Analyst**
-2. Seleziona la Semantic View `SV_ANALISI_ASCOLTI`
-3. Prova queste domande:
-   - "Qual è il programma con lo share più alto?"
-   - "Mostrami gli ascolti per regione"
-   - "Top 5 programmi in prime time"
-   - "Confronta gli ascolti di Canale 5 e Italia 1"
+**Nota:** La clausola `WHEN SYSTEM$STREAM_HAS_DATA(...)` fa sì che il task si esegua solo quando ci sono nuovi dati nello stream, risparmiando risorse.
+
+#### Step 4.7: Test della Pipeline Stream + Task
+```sql
+-- Inserisci nuovi dati nella tabella sorgente
+INSERT INTO MEDIASET_LAB.RAW.ASCOLTI VALUES
+(99801, 3, 5, CURRENT_DATE(), 'Access Prime Time', 'Lombardia', 2100000, 19.3, 'Adulti 25-54', 'Smart TV'),
+(99802, 3, 5, CURRENT_DATE(), 'Access Prime Time', 'Lazio', 1500000, 16.8, 'Adulti 25-54', 'TV Tradizionale');
+
+-- Verifica che lo stream ha catturato le modifiche
+SELECT * FROM MEDIASET_LAB.RAW.ASCOLTI_STREAM;
+
+-- Esegui il task manualmente (senza aspettare lo schedule)
+EXECUTE TASK PROCESSA_NUOVI_ASCOLTI;
+
+-- Verifica i risultati nella tabella target
+SELECT * FROM MEDIASET_LAB.ANALYTICS.NUOVI_ASCOLTI_LOG
+ORDER BY data_elaborazione DESC;
+
+-- Lo stream è ora vuoto (i dati sono stati consumati)
+SELECT * FROM MEDIASET_LAB.RAW.ASCOLTI_STREAM;
+```
+
+#### Step 4.8: Pulizia Tasks
+```sql
+-- Sospendi il task quando non serve più (best practice)
+ALTER TASK PROCESSA_NUOVI_ASCOLTI SUSPEND;
+```
 
 ### Esercizio Pratico 5
-Crea una Semantic View per l'analisi commerciale con metriche su budget pubblicitario e numero contratti.
-
----
-
-## Modulo 6: Cortex Search & Snowflake Intelligence (25 min)
-
-> **Cortex Search** abilita ricerche semantiche sui dati testuali: trova contenuti per significato, non solo keyword. **Snowflake Intelligence** è l'assistente AI integrato che risponde a domande sui tuoi dati in linguaggio naturale, combinando Cortex Analyst e Search.
-
-### Obiettivi di Apprendimento
-- Creare servizi di ricerca semantica
-- Eseguire query in linguaggio naturale
-- Esplorare Snowflake Intelligence
-
-### Istruzioni Passo-Passo
-
-#### Step 6.1: Creazione Cortex Search Service
-```sql
-USE SCHEMA MEDIASET_LAB.RAW;
-
--- Crea vista con testo ricercabile
-CREATE OR REPLACE VIEW V_CONTENUTI_RICERCABILI AS
-SELECT 
-    c.contenuto_id,
-    c.titolo,
-    p.genere,
-    p.canale,
-    c.descrizione_completa,
-    CONCAT(c.titolo, ' ', c.descrizione_completa, ' ', c.parole_chiave) as testo_ricercabile
-FROM CONTENUTI_DESCRIZIONI c
-JOIN PROGRAMMI_TV p ON c.programma_id = p.programma_id;
-
--- Crea il servizio di ricerca
-CREATE OR REPLACE CORTEX SEARCH SERVICE SEARCH_PROGRAMMI
-  ON testo_ricercabile
-  ATTRIBUTES titolo, genere, canale
-  WAREHOUSE = MEDIASET_WH
-  TARGET_LAG = '1 hour'
-AS (SELECT * FROM V_CONTENUTI_RICERCABILI);
-```
-
-#### Step 6.2: Ricerche Semantiche
-```sql
--- Cerca programmi per famiglie
-SELECT SNOWFLAKE.CORTEX.SEARCH_PREVIEW(
-    'MEDIASET_LAB.RAW.SEARCH_PROGRAMMI',
-    '{
-        "query": "programmi divertenti per famiglie",
-        "columns": ["titolo", "genere", "canale"],
-        "limit": 5
-    }'
-);
-
--- Cerca reality show
-SELECT SNOWFLAKE.CORTEX.SEARCH_PREVIEW(
-    'MEDIASET_LAB.RAW.SEARCH_PROGRAMMI',
-    '{
-        "query": "reality show amore coppie",
-        "columns": ["titolo", "genere"],
-        "limit": 5
-    }'
-);
-```
-
-#### Step 6.3: Snowflake Intelligence
-1. Vai su **AI & ML** > **Snowflake Intelligence**
-2. Prova domande come:
-   - "Mostrami i programmi con il budget più alto"
-   - "Quali sono i trend di ascolto per fascia oraria?"
-   - "Confronta le performance dei diversi canali"
-
-### Esercizio Pratico 6
-Crea un Cortex Search Service sui feedback social e cerca i commenti relativi a specifici conduttori.
+Crea uno stream sulla tabella `FEEDBACK_SOCIAL` e un task che, quando arrivano nuovi feedback, inserisca un riepilogo aggregato per `sentiment` in una nuova tabella `ANALYTICS.FEEDBACK_RIEPILOGO`.
 
 ---
 
@@ -554,24 +603,21 @@ Crea un Cortex Search Service sui feedback social e cerca i commenti relativi a 
 
 ### Cosa Abbiamo Imparato
 1. **Snowflake Basics**: Database, Schema, Warehouse, Ruoli
-2. **Security**: Masking Policy, Row Access Policy
-3. **Pipelines**: Dynamic Tables per ETL automatico
-4. **AI SQL**: Sentiment, Classification, Summarization, Translation
-5. **Semantic Views**: Metriche di business, Cortex Analyst
-6. **Search**: Ricerca semantica con Cortex Search
+2. **Zero Copy Cloning e Time Travel**: Clonazione istantanea e recupero dati storici
+3. **Security**: Masking Policy, Row Access Policy
+4. **Pipelines**: Dynamic Tables per ETL automatico, Streams & Tasks per pipeline event-driven
 
 ### Best Practices
 - Usa ruoli specifici per ogni tipo di utente
 - Implementa masking su tutti i dati sensibili (PII)
 - Preferisci Dynamic Tables per trasformazioni ricorrenti
-- Definisci metriche consistenti nelle Semantic Views
-- Sfrutta le AI functions per arricchire i dati
+- Usa Zero Copy Cloning per ambienti di test/dev senza costi di storage
+- Abilita Time Travel per proteggere i dati da cancellazioni accidentali
+- Sospendi sempre i Tasks quando non sono necessari per risparmiare crediti
 
 ### Risorse Utili
 - [Documentazione Snowflake](https://docs.snowflake.com)
 - [Snowflake Community](https://community.snowflake.com)
-- [Cortex AI Functions](https://docs.snowflake.com/en/user-guide/snowflake-cortex)
-- [Semantic Views](https://docs.snowflake.com/en/user-guide/views-semantic)
 
 ---
 
