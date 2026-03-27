@@ -10,10 +10,22 @@ USE SCHEMA SECURITY;
 USE WAREHOUSE MEDIASET_WH;
 
 -- ============================================================================
--- SEZIONE 1: COLUMN-LEVEL MASKING (Data Masking)
+-- SEZIONE 1: TAG-BASED COLUMN MASKING
 -- ============================================================================
 
--- Creiamo una masking policy per nascondere l'email agli utenti non autorizzati
+-- I Tag in Snowflake sono metadati che si associano a oggetti e colonne.
+-- Sono fondamentali sia per la GOVERNANCE (identificare dati sensibili come PII,
+-- PHI, PCI) sia per il COST ALLOCATION (tracciare l'utilizzo delle risorse per
+-- business unit o progetto tramite tag sui warehouse).
+-- Associando una masking policy a un tag, ogni colonna taggata viene
+-- automaticamente protetta — senza doverla configurare una per una.
+
+-- Passo 1: Creare un tag per classificare le colonne contenenti PII
+CREATE OR REPLACE TAG MEDIASET_LAB.SECURITY.PII_TYPE
+    ALLOWED_VALUES = 'EMAIL', 'TELEFONO', 'NOME', 'INDIRIZZO'
+    COMMENT = 'Classifica il tipo di dato personale (PII) contenuto nella colonna';
+
+-- Passo 2: Creare le masking policy
 CREATE OR REPLACE MASKING POLICY email_mask AS (val STRING) RETURNS STRING ->
     CASE
         WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN') THEN val
@@ -22,7 +34,6 @@ CREATE OR REPLACE MASKING POLICY email_mask AS (val STRING) RETURNS STRING ->
         ELSE '***RISERVATO***'
     END;
 
--- Creiamo una masking policy per il numero di telefono
 CREATE OR REPLACE MASKING POLICY telefono_mask AS (val STRING) RETURNS STRING ->
     CASE
         WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN') THEN val
@@ -31,7 +42,6 @@ CREATE OR REPLACE MASKING POLICY telefono_mask AS (val STRING) RETURNS STRING ->
         ELSE '***-***-****'
     END;
 
--- Creiamo una masking policy per importi finanziari
 CREATE OR REPLACE MASKING POLICY importo_mask AS (val DECIMAL(8,2)) RETURNS DECIMAL(8,2) ->
     CASE
         WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN') THEN val
@@ -40,15 +50,26 @@ CREATE OR REPLACE MASKING POLICY importo_mask AS (val DECIMAL(8,2)) RETURNS DECI
         ELSE NULL
     END;
 
--- Applichiamo le masking policy alla tabella ABBONATI
-ALTER TABLE MEDIASET_LAB.RAW.ABBONATI 
-    MODIFY COLUMN email SET MASKING POLICY email_mask;
+-- Passo 3: Associare le masking policy al tag PII_TYPE
+-- Ogni colonna che riceverà il tag sarà automaticamente mascherata
+ALTER TAG MEDIASET_LAB.SECURITY.PII_TYPE
+    SET MASKING POLICY email_mask;
 
+-- Passo 4: Assegnare il tag alle colonne della tabella ABBONATI
+ALTER TABLE MEDIASET_LAB.RAW.ABBONATI
+    MODIFY COLUMN email SET TAG MEDIASET_LAB.SECURITY.PII_TYPE = 'EMAIL';
+
+-- Per telefono e importo, applichiamo direttamente (tipi diversi dal tag STRING)
 ALTER TABLE MEDIASET_LAB.RAW.ABBONATI 
     MODIFY COLUMN telefono SET MASKING POLICY telefono_mask;
 
 ALTER TABLE MEDIASET_LAB.RAW.ABBONATI 
     MODIFY COLUMN importo_mensile SET MASKING POLICY importo_mask;
+
+-- Verifica quali tag sono assegnati
+SELECT * FROM TABLE(INFORMATION_SCHEMA.TAG_REFERENCES(
+    'MEDIASET_LAB.RAW.ABBONATI.EMAIL', 'COLUMN'
+));
 
 -- ============================================================================
 -- SEZIONE 2: ROW ACCESS POLICY (Row-Level Security)
@@ -142,6 +163,41 @@ SELECT regione, COUNT(*) as num_rilevazioni
 FROM MEDIASET_LAB.RAW.ASCOLTI
 GROUP BY regione
 ORDER BY regione;
+
+-- ============================================================================
+-- SEZIONE 3b: AGGREGATION POLICY
+-- ============================================================================
+
+-- Le Aggregation Policy impediscono che una query restituisca risultati basati
+-- su un numero troppo piccolo di record, proteggendo contro la re-identificazione
+-- di individui. Utili in scenari di data sharing dove i consumatori devono poter
+-- analizzare solo dati aggregati, senza accedere a record individuali.
+
+USE ROLE ACCOUNTADMIN;
+USE SCHEMA MEDIASET_LAB.SECURITY;
+
+-- Creare una aggregation policy che richiede almeno 5 record per gruppo
+CREATE OR REPLACE AGGREGATION POLICY min_aggregation_policy
+    AS () RETURNS AGGREGATION_CONSTRAINT ->
+    CASE
+        WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN') 
+            THEN NO_AGGREGATION_CONSTRAINT()
+        ELSE AGGREGATION_CONSTRAINT(MIN_GROUP_SIZE => 5)
+    END;
+
+-- Applicare la policy alla tabella ABBONATI
+ALTER TABLE MEDIASET_LAB.RAW.ABBONATI
+    SET AGGREGATION POLICY min_aggregation_policy;
+
+-- Test: Come ANALYST, le query aggregate funzionano normalmente
+USE ROLE MEDIASET_ANALYST;
+SELECT regione, COUNT(*) as num_abbonati, AVG(importo_mensile) as media_importo
+FROM MEDIASET_LAB.RAW.ABBONATI
+GROUP BY regione;
+
+-- Test: Come ADMIN, nessuna restrizione (anche query non aggregate)
+USE ROLE MEDIASET_ADMIN;
+SELECT * FROM MEDIASET_LAB.RAW.ABBONATI LIMIT 5;
 
 -- ============================================================================
 -- SEZIONE 4: GESTIONE AVANZATA DELLE POLICY

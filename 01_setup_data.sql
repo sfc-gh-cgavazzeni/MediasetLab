@@ -379,3 +379,21 @@ LIMIT 10;
 
 -- ESERCIZIO 1.5: Verifica dei ruoli creati
 SHOW ROLES LIKE 'MEDIASET%';
+
+-- ESERCIZIO 1.6: Elasticità del Warehouse
+-- Snowflake permette di ridimensionare un warehouse in pochi secondi,
+-- senza interruzioni per le query in corso. Prova a scalare da XSMALL a MEDIUM
+-- e osserva il tempo di esecuzione del comando.
+
+ALTER WAREHOUSE MEDIASET_WH SET WAREHOUSE_SIZE = 'MEDIUM';
+
+-- NOTA: Osserva il tempo di esecuzione nell'output della query.
+-- Il ridimensionamento è quasi istantaneo — questa è una delle caratteristiche
+-- chiave dell'architettura cloud-native di Snowflake.
+
+-- Torna alla size precedente per risparmiare crediti
+ALTER WAREHOUSE MEDIASET_WH SET WAREHOUSE_SIZE = 'XSMALL';
+
+-- BEST PRACTICE: Usa la size minima necessaria per il carico di lavoro.
+-- Scala verso l'alto solo quando servono prestazioni maggiori,
+-- e ricorda sempre di tornare alla size originale al termine.

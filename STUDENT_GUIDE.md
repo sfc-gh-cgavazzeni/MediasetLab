@@ -40,7 +40,9 @@
 #### Step 1.1: Accesso a Snowflake
 1. Apri il browser e vai all'URL del tuo account Snowflake
 2. Effettua il login con le credenziali fornite
-3. Seleziona **Worksheets** dal menu laterale
+3. Nel menu laterale, vai su **Projects** > **Workspaces**
+
+**Workspaces** è l'ambiente di lavoro unificato di Snowsight che combina fogli SQL, notebook Python e file in un unico spazio collaborativo. Permette di organizzare query, notebook e risorse in cartelle condivisibili con il team, sostituendo la precedente sezione "Worksheets".
 
 #### Step 1.2: Creazione Database e Schema
 ```sql
@@ -108,7 +110,7 @@ Esegui le sezioni 1-4 dello script `01_setup_data.sql` per creare database, sche
 
 I dati sono forniti come file CSV nella cartella `data/`. Per caricare ogni tabella:
 
-1. Nel menu laterale di Snowsight, clicca su **Data** > **Databases**
+1. Nel menu laterale, clicca su **Catalog** > **Database Explorer**
 2. Naviga fino a **MEDIASET_LAB** > **RAW**
 3. Clicca sulla tabella da popolare (es. `PROGRAMMI_TV`)
 4. In alto a destra, clicca su **Load Data**
@@ -168,7 +170,19 @@ SELECT
 FROM MEDIASET_LAB.RAW.ASCOLTI
 GROUP BY regione
 ORDER BY share_medio DESC;
+
+-- Elasticità del Warehouse: scala da XSMALL a MEDIUM
+ALTER WAREHOUSE MEDIASET_WH SET WAREHOUSE_SIZE = 'MEDIUM';
 ```
+
+**Nota:** Osserva il tempo di esecuzione del comando `ALTER WAREHOUSE`: il ridimensionamento è quasi istantaneo. Snowflake scala le risorse di calcolo in pochi secondi, senza interruzioni per le query in corso. Questa è una delle caratteristiche chiave dell'architettura cloud-native di Snowflake.
+
+```sql
+-- Torna alla size precedente per risparmiare crediti
+ALTER WAREHOUSE MEDIASET_WH SET WAREHOUSE_SIZE = 'XSMALL';
+```
+
+**Best Practice:** Usa la size minima necessaria per il carico di lavoro. Scala verso l'alto solo quando servono prestazioni maggiori, e ricorda di tornare alla size originale al termine.
 
 #### Step 1.9: Caricamento Dati da Stage S3 Pubblico
 
@@ -336,10 +350,20 @@ Clona l'intero schema `RAW` in un nuovo schema `RAW_BACKUP` usando `CREATE SCHEM
 
 ### Istruzioni Passo-Passo
 
-#### Step 3.1: Creazione Masking Policy per Email
+#### Step 3.1: Tag-Based Masking Policy per Email
+
+I **Tag** in Snowflake sono metadati che si associano a oggetti e colonne per classificarli. Sono fondamentali sia per la **governance** (identificare dati sensibili come PII, PHI, PCI) sia per il **cost allocation** (tracciare l'utilizzo delle risorse per business unit o progetto tramite i tag sui warehouse). Associando una masking policy a un tag, ogni colonna taggata viene automaticamente protetta — senza doverla configurare una per una.
+
 ```sql
+USE ROLE ACCOUNTADMIN;
 USE SCHEMA MEDIASET_LAB.SECURITY;
 
+-- Passo 1: Creare un tag per classificare le colonne contenenti email
+CREATE OR REPLACE TAG MEDIASET_LAB.SECURITY.PII_TYPE
+    ALLOWED_VALUES = 'EMAIL', 'TELEFONO', 'NOME', 'INDIRIZZO'
+    COMMENT = 'Classifica il tipo di dato personale (PII) contenuto nella colonna';
+
+-- Passo 2: Creare la masking policy per email
 CREATE OR REPLACE MASKING POLICY email_mask AS (val STRING) RETURNS STRING ->
     CASE
         WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN') THEN val
@@ -347,12 +371,31 @@ CREATE OR REPLACE MASKING POLICY email_mask AS (val STRING) RETURNS STRING ->
             REGEXP_REPLACE(val, '(.{2})(.*)(@.*)', '\\1***\\3')
         ELSE '***RISERVATO***'
     END;
+
+-- Passo 3: Associare la masking policy al tag
+-- Ogni colonna che riceverà il tag PII_TYPE = 'EMAIL' sarà automaticamente mascherata
+ALTER TAG MEDIASET_LAB.SECURITY.PII_TYPE
+    SET MASKING POLICY email_mask;
+
+-- Passo 4: Assegnare il tag alla colonna email della tabella ABBONATI
+ALTER TABLE MEDIASET_LAB.RAW.ABBONATI
+    MODIFY COLUMN email SET TAG MEDIASET_LAB.SECURITY.PII_TYPE = 'EMAIL';
 ```
 
-#### Step 3.2: Applicazione della Policy
+**Vantaggi del Tag-Based Masking:**
+- **Scalabilità**: se domani aggiungi una nuova tabella con una colonna email, basta assegnarle il tag e la policy si applica automaticamente.
+- **Governance centralizzata**: tutti i dati PII sono catalogati e tracciabili tramite i tag.
+- **Cost allocation**: i tag applicati ai warehouse permettono di attribuire i costi di calcolo a specifici team o progetti (es. `TAG COST_CENTER = 'MARKETING'`).
+
+#### Step 3.2: Verifica del Tag e della Policy
 ```sql
-ALTER TABLE MEDIASET_LAB.RAW.ABBONATI 
-    MODIFY COLUMN email SET MASKING POLICY email_mask;
+-- Verifica quali tag sono assegnati alla colonna
+SELECT * FROM TABLE(INFORMATION_SCHEMA.TAG_REFERENCES(
+    'MEDIASET_LAB.RAW.ABBONATI.EMAIL', 'COLUMN'
+));
+
+-- Verifica le masking policy attive
+SHOW MASKING POLICIES IN SCHEMA MEDIASET_LAB.SECURITY;
 ```
 
 #### Step 3.3: Test con Ruoli Diversi
@@ -416,6 +459,48 @@ SELECT DISTINCT regione FROM MEDIASET_LAB.RAW.ASCOLTI;
 USE ROLE MEDIASET_REGIONALE_SUD;
 SELECT DISTINCT regione FROM MEDIASET_LAB.RAW.ASCOLTI;
 ```
+
+#### Step 3.6: Aggregation Policy
+
+Le **Aggregation Policy** impediscono che una query restituisca risultati basati su un numero troppo piccolo di record, proteggendo contro la re-identificazione di individui. Sono utili quando si condividono dati aggregati con ruoli che non devono poter isolare singoli record.
+
+```sql
+USE ROLE ACCOUNTADMIN;
+USE SCHEMA MEDIASET_LAB.SECURITY;
+
+-- Creare una aggregation policy che richiede almeno 5 record per gruppo
+-- Se una query restituisce un gruppo con meno di 5 righe, il risultato viene bloccato
+CREATE OR REPLACE AGGREGATION POLICY min_aggregation_policy
+    AS () RETURNS AGGREGATION_CONSTRAINT ->
+    CASE
+        WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN', 'ACCOUNTADMIN') 
+            THEN NO_AGGREGATION_CONSTRAINT()
+        ELSE AGGREGATION_CONSTRAINT(MIN_GROUP_SIZE => 5)
+    END;
+
+-- Applicare la policy alla tabella ABBONATI
+ALTER TABLE MEDIASET_LAB.RAW.ABBONATI
+    SET AGGREGATION POLICY min_aggregation_policy;
+```
+
+**Test della Aggregation Policy:**
+```sql
+-- Come ANALYST, le query aggregate funzionano normalmente
+USE ROLE MEDIASET_ANALYST;
+SELECT regione, COUNT(*) as num_abbonati, AVG(importo_mensile) as media_importo
+FROM MEDIASET_LAB.RAW.ABBONATI
+GROUP BY regione;
+
+-- Ma una query senza aggregazione o con gruppi troppo piccoli viene bloccata
+-- Questa query fallirà perché tenta di accedere a righe individuali:
+-- SELECT * FROM MEDIASET_LAB.RAW.ABBONATI LIMIT 5;
+
+-- Come ADMIN, nessuna restrizione
+USE ROLE MEDIASET_ADMIN;
+SELECT * FROM MEDIASET_LAB.RAW.ABBONATI LIMIT 5;
+```
+
+**Nota:** Le aggregation policy sono particolarmente utili in scenari di data sharing, dove si vuole garantire che i consumatori possano solo analizzare dati aggregati senza mai accedere a record individuali.
 
 ### Esercizio Pratico 3
 Crea una masking policy per il campo `telefono` che mostri solo le prime 6 cifre ai ruoli non admin.
@@ -646,4 +731,4 @@ DROP WAREHOUSE IF EXISTS MEDIASET_WH;
 
 **Grazie per aver partecipato al workshop!**
 
-Per domande o supporto: [inserire contatto]
+*Powered by Cortex Code*

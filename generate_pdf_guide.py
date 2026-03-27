@@ -75,7 +75,8 @@ for obj in objectives:
     story.append(Paragraph(f"• {obj}", styles['BulletText']))
 
 story.append(Paragraph("Step 1.1: Accesso a Snowflake", styles['StepTitle']))
-story.append(Paragraph("1. Apri il browser e vai all'URL del tuo account Snowflake<br/>2. Effettua il login con le credenziali fornite<br/>3. Seleziona <b>Worksheets</b> dal menu laterale", styles['BodyText']))
+story.append(Paragraph("1. Apri il browser e vai all'URL del tuo account Snowflake<br/>2. Effettua il login con le credenziali fornite<br/>3. Nel menu laterale, vai su <b>Projects</b> &gt; <b>Workspaces</b>", styles['BodyText']))
+story.append(Paragraph("<b>Workspaces</b> è l'ambiente di lavoro unificato di Snowsight che combina fogli SQL, notebook Python e file in un unico spazio collaborativo. Permette di organizzare query, notebook e risorse in cartelle condivisibili con il team, sostituendo la precedente sezione Worksheets.", styles['FeatureBox']))
 
 story.append(Paragraph("Step 1.2: Creazione Database e Schema", styles['StepTitle']))
 code1 = """USE ROLE SYSADMIN;
@@ -146,8 +147,14 @@ story.append(PageBreak())
 story.append(Paragraph("MODULO 2: ROW & COLUMN LEVEL SECURITY", styles['ModuleTitle']))
 story.append(Paragraph("Le <b>Masking Policy</b> nascondono dati sensibili (PII) a livello di colonna in base al ruolo. Le <b>Row Access Policy</b> filtrano automaticamente le righe visibili, garantendo che ogni utente veda solo i dati di sua competenza.", styles['FeatureBox']))
 
-story.append(Paragraph("Step 2.1: Masking Policy per Email", styles['StepTitle']))
-code4 = """CREATE OR REPLACE MASKING POLICY email_mask 
+story.append(Paragraph("Step 2.1: Tag-Based Masking Policy per Email", styles['StepTitle']))
+story.append(Paragraph("I <b>Tag</b> in Snowflake classificano oggetti e colonne. Sono fondamentali per la <b>governance</b> (identificare PII) e il <b>cost allocation</b> (tracciare costi per team/progetto). Associando una masking policy a un tag, ogni colonna taggata viene automaticamente protetta.", styles['BodyText']))
+code4 = """-- Creare un tag per classificare colonne PII
+CREATE OR REPLACE TAG PII_TYPE
+    ALLOWED_VALUES = 'EMAIL', 'TELEFONO', 'NOME';
+
+-- Creare la masking policy
+CREATE OR REPLACE MASKING POLICY email_mask 
 AS (val STRING) RETURNS STRING ->
     CASE
         WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN') THEN val
@@ -156,8 +163,12 @@ AS (val STRING) RETURNS STRING ->
         ELSE '***RISERVATO***'
     END;
 
-ALTER TABLE MEDIASET_LAB.RAW.ABBONATI 
-    MODIFY COLUMN email SET MASKING POLICY email_mask;"""
+-- Associare la policy al tag (approccio scalabile)
+ALTER TAG PII_TYPE SET MASKING POLICY email_mask;
+
+-- Assegnare il tag alla colonna -> policy applicata automaticamente
+ALTER TABLE MEDIASET_LAB.RAW.ABBONATI
+    MODIFY COLUMN email SET TAG PII_TYPE = 'EMAIL';"""
 story.append(Preformatted(code4, styles['CodeStyle']))
 
 story.append(Paragraph("Step 2.2: Row Access Policy", styles['StepTitle']))
@@ -173,6 +184,20 @@ AS (regione_col VARCHAR) RETURNS BOOLEAN ->
         ELSE FALSE
     END;"""
 story.append(Preformatted(code5, styles['CodeStyle']))
+
+story.append(Paragraph("Step 2.3: Aggregation Policy", styles['StepTitle']))
+story.append(Paragraph("Le <b>Aggregation Policy</b> impediscono query con risultati basati su troppo pochi record, proteggendo contro la re-identificazione. I ruoli non admin possono solo eseguire query aggregate con un minimo di record per gruppo.", styles['BodyText']))
+code_agg = """CREATE OR REPLACE AGGREGATION POLICY min_aggregation_policy
+    AS () RETURNS AGGREGATION_CONSTRAINT ->
+    CASE
+        WHEN CURRENT_ROLE() IN ('MEDIASET_ADMIN') 
+            THEN NO_AGGREGATION_CONSTRAINT()
+        ELSE AGGREGATION_CONSTRAINT(MIN_GROUP_SIZE => 5)
+    END;
+
+ALTER TABLE MEDIASET_LAB.RAW.ABBONATI
+    SET AGGREGATION POLICY min_aggregation_policy;"""
+story.append(Preformatted(code_agg, styles['CodeStyle']))
 
 story.append(Paragraph("Esercizio: Crea una masking policy per il campo telefono.", styles['ExerciseBox']))
 story.append(PageBreak())
@@ -292,6 +317,8 @@ for b in bp:
 
 story.append(Spacer(1, 2*cm))
 story.append(Paragraph("Grazie per aver partecipato al workshop!", styles['CoverSubtitle']))
+story.append(Spacer(1, 1*cm))
+story.append(Paragraph("Powered by Cortex Code", ParagraphStyle(name='FooterNote', fontSize=9, textColor=BODY_GREY, alignment=TA_CENTER)))
 
 doc.build(story)
 print(f"PDF salvato: {output_path}")
