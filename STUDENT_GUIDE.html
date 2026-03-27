@@ -426,6 +426,60 @@ SELECT * FROM CITIBIKE_TRIPS LIMIT 5;
 </code></pre>
 <p><strong>Nota:</strong> Il comando <code>LIST</code> mostra i file disponibili nello stage. Il <code>PATTERN</code> nel <code>COPY INTO</code> limita il caricamento a un singolo file per velocizzare l'esempio. Rimuovendo il <code>PATTERN</code> si caricano tutti i file presenti.</p>
 
+<h4>Step 1.10: Esercizi di Verifica</h4>
+<pre><code class="language-sql">-- ESERCIZIO 1.1: Verifica la struttura del database
+SHOW DATABASES LIKE 'MEDIASET%';
+SHOW SCHEMAS IN DATABASE MEDIASET_LAB;
+SHOW TABLES IN SCHEMA MEDIASET_LAB.RAW;
+
+-- ESERCIZIO 1.2: Query di base sui programmi
+SELECT * FROM MEDIASET_LAB.RAW.PROGRAMMI_TV ORDER BY costo_episodio_eur DESC LIMIT 5;
+
+-- ESERCIZIO 1.3: Analisi degli ascolti per regione
+SELECT 
+    regione,
+    COUNT(*) as num_rilevazioni,
+    AVG(telespettatori) as media_telespettatori,
+    AVG(share_percentuale) as share_medio
+FROM MEDIASET_LAB.RAW.ASCOLTI
+GROUP BY regione
+ORDER BY share_medio DESC;
+
+-- ESERCIZIO 1.4: Join tra programmi e ascolti
+SELECT 
+    p.titolo,
+    p.genere,
+    p.canale,
+    AVG(a.share_percentuale) as share_medio,
+    SUM(a.telespettatori) as telespettatori_totali
+FROM MEDIASET_LAB.RAW.PROGRAMMI_TV p
+JOIN MEDIASET_LAB.RAW.ASCOLTI a ON p.programma_id = a.programma_id
+GROUP BY p.titolo, p.genere, p.canale
+ORDER BY share_medio DESC
+LIMIT 10;
+
+-- ESERCIZIO 1.5: Verifica dei ruoli creati
+SHOW ROLES LIKE 'MEDIASET%';
+
+-- ESERCIZIO 1.6: Elasticità del Warehouse
+-- Snowflake permette di ridimensionare un warehouse in pochi secondi,
+-- senza interruzioni per le query in corso. Prova a scalare da XSMALL a MEDIUM
+-- e osserva il tempo di esecuzione del comando.
+
+ALTER WAREHOUSE MEDIASET_WH SET WAREHOUSE_SIZE = 'MEDIUM';
+
+-- NOTA: Osserva il tempo di esecuzione nell'output della query.
+-- Il ridimensionamento è quasi istantaneo — questa è una delle caratteristiche
+-- chiave dell'architettura cloud-native di Snowflake.
+
+-- Torna alla size precedente per risparmiare crediti
+ALTER WAREHOUSE MEDIASET_WH SET WAREHOUSE_SIZE = 'XSMALL';
+
+-- BEST PRACTICE: Usa la size minima necessaria per il carico di lavoro.
+-- Scala verso l'alto solo quando servono prestazioni maggiori,
+-- e ricorda sempre di tornare alla size originale al termine.
+</code></pre>
+
 <h3>Esercizio Pratico 1</h3>
 <p>Scrivi una query che mostri i top 5 programmi per share medio, includendo genere e canale.</p>
 <hr />

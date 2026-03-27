@@ -24,7 +24,7 @@ USE SCHEMA MEDIASET_LAB.SECURITY;
 
 -- Passo 1: Creare un tag per classificare le colonne contenenti email
 CREATE OR REPLACE TAG MEDIASET_LAB.SECURITY.PII_TYPE
-    ALLOWED_VALUES = 'EMAIL', 'TELEFONO', 'NOME', 'INDIRIZZO'
+    ALLOWED_VALUES 'EMAIL', 'TELEFONO', 'NOME', 'INDIRIZZO'
     COMMENT = 'Classifica il tipo di dato personale (PII) contenuto nella colonna';
 
 -- Passo 2: Creare la masking policy per email
